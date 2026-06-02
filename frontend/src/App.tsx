@@ -1,8 +1,6 @@
 // ============================================================
 //  src/App.tsx
 //  Componente principal do Radar Recife.
-//  Layout split screen: mapa + lista a esquerda,
-//  metricas + previsao a direita.
 // ============================================================
 
 import { useState, useEffect } from 'react'
@@ -12,26 +10,40 @@ import { MetricCard } from './components/MetricCard'
 import { AlertaBanner } from './components/AlertaBanner'
 import { IRA } from './components/IRA'
 import { BairrosLista } from './components/BairrosLista'
-import { climaApi } from './services/api'
+import { MapaRecife } from './components/MapaRecife'
+import { climaApi, bairrosApi } from './services/api'
 
 function App() {
   const [clima, setClima] = useState<any>(null)
+  const [bairros, setBairros] = useState<any[]>([])
+  const [bairroSelecionado, setBairroSelecionado] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [erro, setErro] = useState('')
 
   useEffect(() => {
-    buscarClima()
-    const intervalo = setInterval(buscarClima, 600000)
+    buscarDados()
+    const intervalo = setInterval(buscarDados, 600000)
     return () => clearInterval(intervalo)
   }, [])
 
-  async function buscarClima() {
+  async function buscarDados() {
     try {
-      const resp = await climaApi.atual()
-      setClima(resp.data)
-      setErro('')
+      const [climaResp, bairrosResp] = await Promise.all([
+        climaApi.atual(),
+        bairrosApi.listar(),
+      ])
+      setClima(climaResp.data)
+
+      const bairrosMapa = bairrosResp.data.bairros.map((b: any) => ({
+        ...b,
+        ira: b.risco_base,
+        nivel: b.risco_base <= 20 ? 'verde'
+             : b.risco_base <= 40 ? 'amarelo'
+             : b.risco_base <= 60 ? 'laranja'
+             : 'vermelho',
+      }))
+      setBairros(bairrosMapa)
     } catch (e) {
-      setErro('Erro ao carregar dados climaticos')
+      console.error(e)
     } finally {
       setLoading(false)
     }
@@ -57,68 +69,70 @@ function App() {
           />
         )}
 
-        {/* Grid principal split screen */}
+        {bairroSelecionado && (
+          <div style={{
+            background: '#0b1628',
+            border: '0.5px solid var(--rr-blue)',
+            borderRadius: 8,
+            padding: '10px 16px',
+            marginBottom: 12,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <div>
+              <span style={{ fontSize: 12, color: 'var(--rr-blue-l)', fontWeight: 500 }}>
+                Bairro selecionado:
+              </span>
+              <span style={{ fontSize: 13, color: 'var(--rr-text)', marginLeft: 8 }}>
+                {bairroSelecionado.nome}
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--rr-muted)', marginLeft: 8 }}>
+                IRA: {bairroSelecionado.ira} — Risco base: {bairroSelecionado.risco_base}
+              </span>
+            </div>
+            <button
+              onClick={() => setBairroSelecionado(null)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--rr-muted)',
+                cursor: 'pointer',
+                fontSize: 16,
+              }}
+            >
+              x
+            </button>
+          </div>
+        )}
+
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
           gap: 12,
           marginBottom: 12,
         }}>
-
-          {/* LADO ESQUERDO — Mapa + Lista de bairros */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-            {/* Mapa placeholder */}
-            <div style={{
-              background: 'var(--rr-card)',
-              border: '0.5px solid var(--rr-border)',
-              borderRadius: 8,
-              padding: 14,
-              minHeight: 200,
-            }}>
-              <div style={{
-                fontSize: 11, color: 'var(--rr-sub)',
-                marginBottom: 10,
-                display: 'flex', justifyContent: 'space-between',
-              }}>
-                <span>Mapa de risco — bairros de Recife</span>
-                <span style={{ fontSize: 10, color: 'var(--rr-muted)' }}>Atualizado {hora}</span>
-              </div>
-              <div style={{
-                background: '#070f1e',
-                borderRadius: 6,
-                height: 160,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--rr-muted)',
-                fontSize: 13,
-                border: '0.5px dashed var(--rr-border)',
-              }}>
-                Mapa interativo — Leaflet (em breve)
-              </div>
-            </div>
+            <MapaRecife
+              bairros={bairros}
+              onBairroClick={setBairroSelecionado}
+              atualizadoEm={hora}
+            />
 
-            {/* Lista de bairros */}
             <div style={{ height: 300 }}>
               <BairrosLista />
             </div>
 
           </div>
 
-          {/* LADO DIREITO — Metricas + IRA + Previsao + Noticias */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-            {/* Metricas */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 8,
-            }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <MetricCard
                 label="Temperatura"
-                value={loading ? '...' : `${clima?.temperatura ?? '--'}°C`}
-                sub={`Sensacao ${clima?.sensacao_termica ?? '--'}°C`}
+                value={loading ? '...' : `${clima?.temperatura ?? '--'}C`}
+                sub={`Sensacao ${clima?.sensacao_termica ?? '--'}C`}
                 atualizadoEm={hora}
                 icon={<Thermometer size={13} color="var(--rr-blue-l)" />}
               />
@@ -149,22 +163,16 @@ function App() {
               />
             </div>
 
-            {/* IRA gauge */}
-            <IRA
-              valor={clima?.ira ?? 0}
-              atualizadoEm={hora}
-            />
+            <IRA valor={clima?.ira ?? 0} atualizadoEm={hora} />
 
-            {/* Vento */}
             <MetricCard
               label="Vento"
               value={loading ? '...' : `${clima?.velocidade_vento ?? '--'} km/h`}
-              sub={`${clima?.descricao_tempo ?? ''}`}
+              sub={clima?.descricao_tempo ?? ''}
               atualizadoEm={hora}
               icon={<Wind size={13} color="var(--rr-blue-l)" />}
             />
 
-            {/* Noticias placeholder */}
             <div style={{
               background: 'var(--rr-card)',
               border: '0.5px solid var(--rr-border)',
@@ -181,17 +189,6 @@ function App() {
 
           </div>
         </div>
-
-        {erro && (
-          <div style={{
-            background: '#2a0a0a', border: '0.5px solid #7f1d1d',
-            borderRadius: 8, padding: '10px 14px',
-            color: '#fca5a5', fontSize: 12,
-          }}>
-            {erro}
-          </div>
-        )}
-
       </div>
     </div>
   )
