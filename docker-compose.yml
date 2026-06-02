@@ -1,0 +1,58 @@
+# ============================================================
+#  docker-compose.yml
+#  Orquestra todos os serviços do Radar Recife.
+#  Para subir: docker-compose up --build
+# ============================================================
+services:
+
+  backend:
+    build: ./backend
+    container_name: radarrecife-api
+    env_file:
+      - ./backend/.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: radarrecife-db
+    environment:
+      POSTGRES_DB: radarrecife
+      POSTGRES_USER: radar
+      POSTGRES_PASSWORD: radar123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: radarrecife-cache
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: radarrecife-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: radarrecife-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
