@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+:root {
+  --rr-bg:       #060d1a;
+  --rr-surface:  #0b1628;
+  --rr-card:     #0f1e35;
+  --rr-border:   #1a2f4a;
+  --rr-blue:     #1a6bc8;
+  --rr-blue-l:   #3d8fe0;
+  --rr-text:     #e2f0ff;
+  --rr-muted:    #4a6a8a;
+  --rr-sub:      #8aadcc;
+  --rr-green:    #22c55e;
+  --rr-yellow:   #eab308;
+  --rr-orange:   #f97316;
+  --rr-red:      #ef4444;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  background: var(--rr-bg);
+  color: var(--rr-text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.nivel-verde    { background: #14532d; color: #86efac; }
+.nivel-amarelo  { background: #713f12; color: #fde68a; }
+.nivel-laranja  { background: #7c2d12; color: #fdba74; }
+.nivel-vermelho { background: #7f1d1d; color: #fca5a5; }
