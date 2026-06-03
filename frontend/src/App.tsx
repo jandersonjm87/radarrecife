@@ -11,6 +11,7 @@ import { AlertaBanner } from './components/AlertaBanner'
 import { IRA } from './components/IRA'
 import { BairrosLista } from './components/BairrosLista'
 import { MapaRecife } from './components/MapaRecife'
+import { PrevisaoHoraria } from './components/PrevisaoHoraria'
 import { climaApi, bairrosApi } from './services/api'
 
 function App() {
@@ -172,6 +173,8 @@ function App() {
               atualizadoEm={hora}
               icon={<Wind size={13} color="var(--rr-blue-l)" />}
             />
+
+            <PrevisaoHoraria />
 
             <div style={{
               background: 'var(--rr-card)',
