@@ -13,6 +13,7 @@ import { BairrosLista } from './components/BairrosLista'
 import { MapaRecife } from './components/MapaRecife'
 import { PrevisaoHoraria } from './components/PrevisaoHoraria'
 import { Rodovias } from './components/Rodovias'
+import { ElNino } from './components/ElNino'
 import { climaApi, bairrosApi } from './services/api'
 
 function App() {
@@ -177,6 +178,7 @@ function App() {
 
             <PrevisaoHoraria />
             <Rodovias />
+            <ElNino />
 
             <div style={{
               background: 'var(--rr-card)',
