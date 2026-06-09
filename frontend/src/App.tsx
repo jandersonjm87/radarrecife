@@ -36,13 +36,13 @@ function App() {
       ])
       setClima(climaResp.data)
 
+      // Todos os bairros iniciam em VERDE — o nivel real vem do IRA
+      // calculado com dados climaticos atuais, nao do risco historico.
+      // O risco_base e memoria do bairro, nao o estado atual.
       const bairrosMapa = bairrosResp.data.bairros.map((b: any) => ({
         ...b,
-        ira: b.risco_base,
-        nivel: b.risco_base <= 20 ? 'verde'
-             : b.risco_base <= 40 ? 'amarelo'
-             : b.risco_base <= 60 ? 'laranja'
-             : 'vermelho',
+        ira: 0,
+        nivel: 'verde',
       }))
       setBairros(bairrosMapa)
     } catch (e) {
