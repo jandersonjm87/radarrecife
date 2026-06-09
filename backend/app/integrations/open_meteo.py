@@ -221,11 +221,26 @@ def calcular_ira(
         return 30, motivos
 
     # --- VERDE: sem evidencias ---
-    bonus_umidade = min(((umidade or 0) - 60) * 0.3, 15) if (umidade or 0) > 60 else 0
-    score = min(int(bonus_umidade), 20)
+    # Umidade alta adiciona ate 10 pontos
+    bonus_umidade = min(((umidade or 0) - 60) * 0.25, 10) if (umidade or 0) > 60 else 0
 
-    if score > 0:
+    # Risco historico adiciona bonus sutil — diferencia bairros sem sair do verde
+    base = risco_base or 0
+    if base >= 80:
+        bonus_historico = 8
+    elif base >= 60:
+        bonus_historico = 5
+    elif base >= 40:
+        bonus_historico = 3
+    else:
+        bonus_historico = 0
+
+    score = min(int(bonus_umidade + bonus_historico), 20)
+
+    if bonus_umidade > 0:
         motivos.append(f"Umidade elevada ({umidade}%) — solo parcialmente saturado")
+    if bonus_historico > 0:
+        motivos.append(f"Bairro com historico de risco moderado/alto (base: {base})")
 
     return score, motivos
 
