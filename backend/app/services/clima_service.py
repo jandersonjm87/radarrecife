@@ -22,18 +22,18 @@ async def buscar_clima_bairro(
 ) -> dict:
     """
     Busca e processa dados climaticos completos para um bairro.
-    Calcula o IRA com acumulado 24h e classifica o nivel de risco.
+    Calcula IRA com acumulados 24h/48h/72h e retorna motivos para transparencia.
     """
     dados = await buscar_clima_atual(latitude, longitude)
 
-    # Passa o acumulado_24h para o calculo do IRA — campo adicionado
-    # no open_meteo.py para garantir rastreabilidade do risco real
-    ira = calcular_ira(
+    ira, motivos = calcular_ira(
         volume_mm=dados.get("volume_chuva") or 0,
         prob_chuva=dados.get("prob_chuva") or 0,
         umidade=dados.get("umidade") or 0,
         risco_base=risco_base,
         acumulado_24h=dados.get("acumulado_24h") or 0,
+        acumulado_48h=dados.get("acumulado_48h") or 0,
+        acumulado_72h=dados.get("acumulado_72h") or 0,
     )
 
     nivel = classificar_nivel(ira)
@@ -53,9 +53,12 @@ async def buscar_clima_bairro(
         "volume_chuva":     dados.get("volume_chuva"),
         "prob_chuva":       dados.get("prob_chuva"),
         "acumulado_24h":    dados.get("acumulado_24h"),
+        "acumulado_48h":    dados.get("acumulado_48h"),
+        "acumulado_72h":    dados.get("acumulado_72h"),
         "descricao_tempo":  descricao,
         "ira":              ira,
         "nivel":            nivel,
+        "motivos":          motivos,
         "atualizado_em":    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 

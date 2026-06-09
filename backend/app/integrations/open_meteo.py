@@ -7,18 +7,19 @@
 # ============================================================
 
 import httpx
-from datetime import datetime
-from typing import Optional
-
+from datetime import datetime, timezone, timedelta
 from app.core.config import get_settings
 
 settings = get_settings()
+
+# Fuso horario de Recife (UTC-3)
+TZ_RECIFE = timezone(timedelta(hours=-3))
 
 
 async def buscar_clima_atual(latitude: float, longitude: float) -> dict:
     """
     Busca condicoes climaticas atuais para uma coordenada.
-    Retorna temperatura, umidade, vento, chuva e indice UV.
+    Retorna temperatura, umidade, vento, chuva e acumulados 24h/48h/72h.
     """
     params = {
         "latitude": latitude,
@@ -35,12 +36,10 @@ async def buscar_clima_atual(latitude: float, longitude: float) -> dict:
             "precipitation_probability",
             "weather_code",
         ],
-        "hourly": [
-            "precipitation",
-        ],
+        "hourly": ["precipitation"],
         "timezone": "America/Recife",
+        "past_days": 3,
         "forecast_days": 1,
-        "past_days": 1,
     }
 
     async with httpx.AsyncClient(timeout=15.0) as client:
@@ -52,11 +51,10 @@ async def buscar_clima_atual(latitude: float, longitude: float) -> dict:
         dados = response.json()
 
     atual = dados.get("current", {})
-
-    # Calcula acumulado das ultimas 24h somando precipitacao horaria
     horario = dados.get("hourly", {})
-    precipitacoes = horario.get("precipitation", [])
-    acumulado_24h = round(sum(p for p in precipitacoes if p is not None), 1)
+
+    # Calcula acumulados usando as horas anteriores ao momento atual
+    acumulado_24h, acumulado_48h, acumulado_72h = _calcular_acumulados(horario)
 
     return {
         "temperatura":      atual.get("temperature_2m"),
@@ -70,15 +68,49 @@ async def buscar_clima_atual(latitude: float, longitude: float) -> dict:
         "prob_chuva":       atual.get("precipitation_probability"),
         "codigo_tempo":     atual.get("weather_code"),
         "acumulado_24h":    acumulado_24h,
+        "acumulado_48h":    acumulado_48h,
+        "acumulado_72h":    acumulado_72h,
         "coletado_em":      datetime.now().isoformat(),
         "fonte":            "open-meteo",
     }
 
 
+def _calcular_acumulados(horario: dict) -> tuple[float, float, float]:
+    """
+    Calcula precipitacao acumulada nas ultimas 24h, 48h e 72h.
+    Usa as horas anteriores ao momento atual como referencia.
+    """
+    agora = datetime.now(tz=TZ_RECIFE)
+    horas = horario.get("time", [])
+    precipitacoes = horario.get("precipitation", [])
+
+    acc_24h = 0.0
+    acc_48h = 0.0
+    acc_72h = 0.0
+
+    for i, hora_str in enumerate(horas):
+        if i >= len(precipitacoes):
+            break
+
+        # Converte string ISO para datetime com fuso de Recife
+        hora_dt = datetime.fromisoformat(hora_str).replace(tzinfo=TZ_RECIFE)
+        diff_horas = (agora - hora_dt).total_seconds() / 3600
+
+        # Soma apenas horas passadas (nao previsao futura)
+        if 0 <= diff_horas <= 72:
+            valor = precipitacoes[i] or 0.0
+            acc_72h += valor
+            if diff_horas <= 48:
+                acc_48h += valor
+            if diff_horas <= 24:
+                acc_24h += valor
+
+    return round(acc_24h, 1), round(acc_48h, 1), round(acc_72h, 1)
+
+
 async def buscar_previsao_horaria(latitude: float, longitude: float) -> list[dict]:
     """
     Busca previsao meteorologica hora a hora para as proximas 24h.
-    Retorna lista de pontos com temperatura, chuva e probabilidade.
     """
     params = {
         "latitude": latitude,
@@ -124,49 +156,78 @@ def calcular_ira(
     umidade: int,
     risco_base: int = 0,
     acumulado_24h: float = 0.0,
+    acumulado_48h: float = 0.0,
+    acumulado_72h: float = 0.0,
     alerta_oficial: bool = False,
     alagamento_confirmado: bool = False,
-) -> int:
+) -> tuple[int, list[str]]:
     """
     Calcula o IRA — Indice de Risco de Alagamento.
-
-    Logica baseada em evidencias (diretrizes aprovadas):
+    Retorna o score (0-100) e a lista de motivos para transparencia.
 
     VERDE    (0-20):  padrao — sem evidencias de risco
-    AMARELO (21-40):  chuva moderada prevista, sem ocorrencias graves
-    LARANJA (41-60):  chuva forte confirmada + historico critico
-    VERMELHO(61-100): alerta oficial ATIVO ou alagamento confirmado
-                      ou volume acumulado > 50mm
-
-    O risco_base historico serve apenas como memoria do bairro,
-    nunca como determinante do nivel atual.
+    AMARELO (21-40):  chuva moderada prevista
+    LARANJA (41-60):  chuva forte + contexto de risco
+    VERMELHO(61-100): alerta oficial ou alagamento confirmado ou >50mm
     """
+    motivos: list[str] = []
 
-    volume_atual = volume_mm or 0
-    acumulado = acumulado_24h or 0
-    prob_normalizada = (prob_chuva or 0) / 100.0  # converte 0-100 para 0.0-1.0
+    volume_atual   = volume_mm or 0
+    prob_norm      = (prob_chuva or 0) / 100.0
+    acc_24         = acumulado_24h or 0
+    acc_48         = acumulado_48h or 0
+    acc_72         = acumulado_72h or 0
+    historico_alto = (risco_base or 0) > 60
 
     # --- VERMELHO: exige evidencia concreta ---
-    if alerta_oficial or alagamento_confirmado or acumulado > 50:
-        return 75
+    if alerta_oficial:
+        motivos.append("Alerta oficial ativo (APAC/CEMADEN/Defesa Civil)")
+        return 75, motivos
 
-    # --- LARANJA: chuva forte + contexto de risco ---
-    chuva_forte = volume_atual > 10 or acumulado > 25
-    probabilidade_alta = prob_normalizada > 0.80
-    historico_critico = (risco_base or 0) > 60
+    if alagamento_confirmado:
+        motivos.append("Alagamento confirmado por fonte verificada")
+        return 75, motivos
 
-    if chuva_forte and probabilidade_alta and historico_critico:
-        return 50  # laranja consolidado
-    elif chuva_forte and probabilidade_alta:
-        return 45  # laranja leve
+    if acc_24 > 50:
+        motivos.append(f"Acumulado critico: {acc_24}mm nas ultimas 24h")
+        return 75, motivos
 
-    # --- AMARELO: chuva moderada prevista ---
-    if volume_atual > 2 or (prob_normalizada > 0.60 and volume_atual > 0.5):
-        return 30  # amarelo
+    if acc_48 > 80:
+        motivos.append(f"Acumulado critico: {acc_48}mm nas ultimas 48h")
+        return 70, motivos
 
-    # --- VERDE: sem evidencias — umidade alta adiciona no maximo 15 pontos ---
+    if acc_72 > 100:
+        motivos.append(f"Acumulado critico: {acc_72}mm nas ultimas 72h")
+        return 65, motivos
+
+    # --- LARANJA: chuva forte + contexto ---
+    chuva_forte    = volume_atual > 10 or acc_24 > 25
+    prob_alta      = prob_norm > 0.80
+
+    if chuva_forte and prob_alta and historico_alto:
+        motivos.append(f"Chuva forte ({volume_atual}mm) com probabilidade {prob_chuva}%")
+        motivos.append(f"Bairro com historico critico de alagamentos (base: {risco_base})")
+        return 50, motivos
+
+    if chuva_forte and prob_alta:
+        motivos.append(f"Chuva forte ({volume_atual}mm) com probabilidade {prob_chuva}%")
+        return 45, motivos
+
+    # --- AMARELO: chuva moderada ---
+    if volume_atual > 2 or (prob_norm > 0.60 and volume_atual > 0.5):
+        motivos.append(f"Chuva moderada prevista ({volume_atual}mm, prob. {prob_chuva}%)")
+        if acc_24 > 10:
+            motivos.append(f"Solo ja com acumulado de {acc_24}mm nas ultimas 24h")
+        return 30, motivos
+
+    # --- VERDE: sem evidencias ---
     bonus_umidade = min(((umidade or 0) - 60) * 0.3, 15) if (umidade or 0) > 60 else 0
-    return min(int(bonus_umidade), 20)  # nunca passa do verde
+    score = min(int(bonus_umidade), 20)
+
+    if score > 0:
+        motivos.append(f"Umidade elevada ({umidade}%) — solo parcialmente saturado")
+
+    return score, motivos
 
 
 def classificar_nivel(ira: int) -> str:
