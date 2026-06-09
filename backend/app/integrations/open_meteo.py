@@ -35,8 +35,12 @@ async def buscar_clima_atual(latitude: float, longitude: float) -> dict:
             "precipitation_probability",
             "weather_code",
         ],
+        "hourly": [
+            "precipitation",
+        ],
         "timezone": "America/Recife",
         "forecast_days": 1,
+        "past_days": 1,
     }
 
     async with httpx.AsyncClient(timeout=15.0) as client:
@@ -49,6 +53,11 @@ async def buscar_clima_atual(latitude: float, longitude: float) -> dict:
 
     atual = dados.get("current", {})
 
+    # Calcula acumulado das ultimas 24h somando precipitacao horaria
+    horario = dados.get("hourly", {})
+    precipitacoes = horario.get("precipitation", [])
+    acumulado_24h = round(sum(p for p in precipitacoes if p is not None), 1)
+
     return {
         "temperatura":      atual.get("temperature_2m"),
         "sensacao_termica": atual.get("apparent_temperature"),
@@ -60,6 +69,7 @@ async def buscar_clima_atual(latitude: float, longitude: float) -> dict:
         "volume_chuva":     atual.get("precipitation"),
         "prob_chuva":       atual.get("precipitation_probability"),
         "codigo_tempo":     atual.get("weather_code"),
+        "acumulado_24h":    acumulado_24h,
         "coletado_em":      datetime.now().isoformat(),
         "fonte":            "open-meteo",
     }
@@ -113,29 +123,50 @@ def calcular_ira(
     prob_chuva: int,
     umidade: int,
     risco_base: int = 0,
+    acumulado_24h: float = 0.0,
+    alerta_oficial: bool = False,
+    alagamento_confirmado: bool = False,
 ) -> int:
     """
     Calcula o IRA — Indice de Risco de Alagamento.
 
-    Formula:
-        volume_mm  * 0.40 (peso maior para volume real)
-        prob_chuva * 0.30 (probabilidade de chuva)
-        umidade    * 0.15 (solo ja saturado aumenta risco)
-        risco_base * 0.15 (historico do bairro)
+    Logica baseada em evidencias (diretrizes aprovadas):
 
-    Retorna valor de 0 a 100:
-        0-20  → Verde   (Normal)
-        21-40 → Amarelo (Atencao)
-        41-60 → Laranja (Alerta)
-        61-100→ Vermelho (Risco Alto)
+    VERDE    (0-20):  padrao — sem evidencias de risco
+    AMARELO (21-40):  chuva moderada prevista, sem ocorrencias graves
+    LARANJA (41-60):  chuva forte confirmada + historico critico
+    VERMELHO(61-100): alerta oficial ATIVO ou alagamento confirmado
+                      ou volume acumulado > 50mm
+
+    O risco_base historico serve apenas como memoria do bairro,
+    nunca como determinante do nivel atual.
     """
-    score = (
-        (volume_mm or 0)  * 0.40 +
-        (prob_chuva or 0) * 0.30 +
-        (umidade or 0)    * 0.15 +
-        (risco_base or 0) * 0.15
-    )
-    return min(int(score), 100)
+
+    volume_atual = volume_mm or 0
+    acumulado = acumulado_24h or 0
+    prob_normalizada = (prob_chuva or 0) / 100.0  # converte 0-100 para 0.0-1.0
+
+    # --- VERMELHO: exige evidencia concreta ---
+    if alerta_oficial or alagamento_confirmado or acumulado > 50:
+        return 75
+
+    # --- LARANJA: chuva forte + contexto de risco ---
+    chuva_forte = volume_atual > 10 or acumulado > 25
+    probabilidade_alta = prob_normalizada > 0.80
+    historico_critico = (risco_base or 0) > 60
+
+    if chuva_forte and probabilidade_alta and historico_critico:
+        return 50  # laranja consolidado
+    elif chuva_forte and probabilidade_alta:
+        return 45  # laranja leve
+
+    # --- AMARELO: chuva moderada prevista ---
+    if volume_atual > 2 or (prob_normalizada > 0.60 and volume_atual > 0.5):
+        return 30  # amarelo
+
+    # --- VERDE: sem evidencias — umidade alta adiciona no maximo 15 pontos ---
+    bonus_umidade = min(((umidade or 0) - 60) * 0.3, 15) if (umidade or 0) > 60 else 0
+    return min(int(bonus_umidade), 20)  # nunca passa do verde
 
 
 def classificar_nivel(ira: int) -> str:
