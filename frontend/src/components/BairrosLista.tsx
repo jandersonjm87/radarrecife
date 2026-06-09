@@ -36,14 +36,13 @@ export function BairrosLista() {
   async function carregarBairros() {
     try {
       const resp = await bairrosApi.listar()
+      // Todos os bairros iniciam em VERDE — risco_base e historico,
+      // nao o nivel atual. O nivel real exige dados climaticos em tempo real.
       const dados = resp.data.bairros.map((b: any) => ({
         nome: b.nome,
-        ira: b.risco_base,
-        nivel: b.risco_base <= 20 ? 'verde'
-             : b.risco_base <= 40 ? 'amarelo'
-             : b.risco_base <= 60 ? 'laranja'
-             : 'vermelho',
-        atualizado_em: 'dados base',
+        ira: 0,
+        nivel: 'verde',
+        atualizado_em: 'tempo real',
       }))
       setBairros(dados)
     } catch (e) {
