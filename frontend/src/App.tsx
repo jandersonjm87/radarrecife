@@ -32,7 +32,7 @@ function App() {
     try {
       const [climaResp, bairrosResp] = await Promise.all([
         climaApi.atual(),
-        bairrosApi.listar(),
+        bairrosApi.ranking(),
       ])
       setClima(climaResp.data)
 

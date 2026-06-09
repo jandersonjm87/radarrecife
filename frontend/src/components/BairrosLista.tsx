@@ -1,8 +1,7 @@
 // ============================================================
 //  src/components/BairrosLista.tsx
-//  Lista de bairros com nivel de risco em tempo real.
+//  Ranking dinamico de bairros ordenado por IRA em tempo real.
 // ============================================================
-
 import { useState, useEffect } from 'react'
 import { bairrosApi } from '../services/api'
 
@@ -10,7 +9,8 @@ interface BairroStatus {
   nome: string
   ira: number
   nivel: string
-  atualizado_em: string
+  risco_base: number
+  motivos: string[]
 }
 
 const NIVEL_STYLE: Record<string, { bg: string; cor: string }> = {
@@ -30,21 +30,15 @@ export function BairrosLista() {
   const [busca, setBusca] = useState('')
 
   useEffect(() => {
-    carregarBairros()
+    carregarRanking()
+    const intervalo = setInterval(carregarRanking, 600000) // atualiza a cada 10min
+    return () => clearInterval(intervalo)
   }, [])
 
-  async function carregarBairros() {
+  async function carregarRanking() {
     try {
-      const resp = await bairrosApi.listar()
-      // Todos os bairros iniciam em VERDE — risco_base e historico,
-      // nao o nivel atual. O nivel real exige dados climaticos em tempo real.
-      const dados = resp.data.bairros.map((b: any) => ({
-        nome: b.nome,
-        ira: 0,
-        nivel: 'verde',
-        atualizado_em: 'tempo real',
-      }))
-      setBairros(dados)
+      const resp = await bairrosApi.ranking()
+      setBairros(resp.data.bairros)
     } catch (e) {
       console.error(e)
     } finally {
@@ -91,9 +85,9 @@ export function BairrosLista() {
       <div style={{ overflowY: 'auto', flex: 1 }}>
         {loading ? (
           <div style={{ color: 'var(--rr-muted)', fontSize: 12, textAlign: 'center', paddingTop: 20 }}>
-            Carregando...
+            Carregando ranking...
           </div>
-        ) : filtrados.map((b) => {
+        ) : filtrados.map((b, i) => {
           const style = NIVEL_STYLE[b.nivel] || NIVEL_STYLE.verde
           return (
             <div key={b.nome} style={{
@@ -102,14 +96,24 @@ export function BairrosLista() {
               padding: '6px 0',
               borderBottom: '0.5px solid var(--rr-border)',
             }}>
-              <span style={{ fontSize: 12, color: 'var(--rr-text)' }}>{b.nome}</span>
-              <span style={{
-                fontSize: 10, fontWeight: 500,
-                padding: '2px 8px', borderRadius: 4,
-                background: style.bg, color: style.cor,
-              }}>
-                {NIVEL_LABEL[b.nivel]}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 10, color: 'var(--rr-muted)', width: 18 }}>
+                  {i + 1}
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--rr-text)' }}>{b.nome}</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 10, color: 'var(--rr-muted)' }}>
+                  {b.ira}
+                </span>
+                <span style={{
+                  fontSize: 10, fontWeight: 500,
+                  padding: '2px 8px', borderRadius: 4,
+                  background: style.bg, color: style.cor,
+                }}>
+                  {NIVEL_LABEL[b.nivel]}
+                </span>
+              </div>
             </div>
           )
         })}
