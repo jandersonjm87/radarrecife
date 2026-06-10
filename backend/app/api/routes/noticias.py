@@ -1,106 +1,145 @@
 # ============================================================
 #  backend/app/api/routes/noticias.py
-#  Noticias climaticas + boletins automaticos do Radar Recife.
+#  Sistema de noticias inteligentes do Radar Recife.
 # ============================================================
 
+import asyncio
 from fastapi import APIRouter, HTTPException
-from app.integrations.noticias_rss import buscar_noticias_clima
+from datetime import datetime, timezone, timedelta
+from app.integrations.noticias_rss import buscar_noticias_inteligentes
 from app.integrations.open_meteo import buscar_clima_atual, calcular_ira, classificar_nivel
-from datetime import datetime
+from app.data.bairros_recife import BAIRROS_RECIFE
 
 router = APIRouter()
 
-# Coordenadas do centro de Recife
 RECIFE_LAT = -8.0631
-RECIFE_LON = -34.8711
+RECIFE_LON  = -34.8711
+TZ_RECIFE   = timezone(timedelta(hours=-3))
 
 
-async def _gerar_boletim_automatico() -> list[dict]:
-    """
-    Gera boletins meteorologicos automaticos baseados nos
-    dados reais da Open-Meteo e no calculo do IRA.
-    """
-    try:
-        dados = await buscar_clima_atual(RECIFE_LAT, RECIFE_LON)
-        ira = calcular_ira(
-            volume_mm=dados.get("volume_chuva") or 0,
-            prob_chuva=dados.get("prob_chuva") or 0,
-            umidade=dados.get("umidade") or 0,
-            risco_base=20,
-        )
-        nivel = classificar_nivel(ira)
-        agora = datetime.now().strftime("%d/%m/%Y %H:%M")
+def _gerar_boletim(dados: dict, ira: int, nivel: str) -> dict:
+    """Gera boletim automatico baseado nos dados climaticos reais."""
+    agora = datetime.now(tz=TZ_RECIFE).strftime("%d/%m/%Y %H:%M")
+    vol   = dados.get("volume_chuva", 0)
+    prob  = dados.get("prob_chuva", 0)
+    temp  = dados.get("temperatura", 0)
+    umid  = dados.get("umidade", 0)
+    acc   = dados.get("acumulado_24h", 0)
+    desc  = dados.get("descricao_tempo", "")
 
-        boletins = []
+    if nivel == "vermelho":
+        titulo = f"ALERTA CRITICO: Risco alto de alagamento — IRA {ira}/100"
+        descricao = f"Acumulado 24h: {acc}mm. Volume atual: {vol}mm. Prob. {prob}%. Evite areas de risco."
+    elif nivel == "laranja":
+        titulo = f"ALERTA: Condicoes de risco em Recife — IRA {ira}/100"
+        descricao = f"Chuva forte detectada. Volume: {vol}mm. Prob. {prob}%. Acumulado 24h: {acc}mm."
+    elif nivel == "amarelo":
+        titulo = f"ATENCAO: Chuva moderada prevista — IRA {ira}/100"
+        descricao = f"Prob. de chuva: {prob}%. Temperatura: {temp}°C. Umidade: {umid}%."
+    else:
+        titulo = f"Recife sem alertas ativos — {desc}"
+        descricao = f"Condicoes normais. Temp: {temp}°C. Prob. chuva: {prob}%. Umidade: {umid}%."
 
-        # Boletim principal baseado no IRA
-        if nivel == "vermelho":
-            boletins.append({
-                "titulo": f"ALERTA: Alto risco de alagamento em Recife — IRA {ira}/100",
-                "descricao": f"Condicoes criticas detectadas. Volume de chuva: {dados.get('volume_chuva', 0)}mm. Prob. chuva: {dados.get('prob_chuva', 0)}%. Evite areas de risco.",
-                "link": "",
-                "fonte": "Radar Recife — Alerta Automatico",
-                "data": agora,
-                "automatico": True,
-                "nivel": "vermelho",
-            })
-        elif nivel == "laranja":
-            boletins.append({
-                "titulo": f"ATENCAO: Condicoes de alerta em Recife — IRA {ira}/100",
-                "descricao": f"Situacao de alerta. Prob. de chuva: {dados.get('prob_chuva', 0)}%. Umidade: {dados.get('umidade', 0)}%. Fique atento aos boletins.",
-                "link": "",
-                "fonte": "Radar Recife — Alerta Automatico",
-                "data": agora,
-                "automatico": True,
-                "nivel": "laranja",
-            })
-        elif nivel == "amarelo":
-            boletins.append({
-                "titulo": f"Condicoes de atencao em Recife — {dados.get('descricao_tempo', '')}",
-                "descricao": f"Prob. de chuva: {dados.get('prob_chuva', 0)}%. Temperatura: {dados.get('temperatura', 0)}C. Umidade: {dados.get('umidade', 0)}%.",
-                "link": "",
-                "fonte": "Radar Recife — Boletim Automatico",
-                "data": agora,
-                "automatico": True,
-                "nivel": "amarelo",
-            })
-        else:
-            boletins.append({
-                "titulo": f"Recife sem alertas ativos — {dados.get('descricao_tempo', '')}",
-                "descricao": f"Condicoes normais. Temperatura: {dados.get('temperatura', 0)}C. Prob. de chuva: {dados.get('prob_chuva', 0)}%. Umidade: {dados.get('umidade', 0)}%.",
-                "link": "",
-                "fonte": "Radar Recife — Boletim Automatico",
-                "data": agora,
-                "automatico": True,
-                "nivel": "verde",
-            })
-
-        return boletins
-
-    except Exception as erro:
-        print(f"Erro ao gerar boletim automatico: {erro}")
-        return []
+    return {
+        "titulo":        titulo,
+        "descricao":     descricao,
+        "link":          "",
+        "fonte":         "Radar Recife — Boletim Automatico",
+        "data":          agora,
+        "data_raw":      "",
+        "tempo_relativo": "agora",
+        "nivel":         nivel,
+        "tipo":          "boletim_automatico",
+        "confianca":     100,
+        "bairros":       [],
+        "rodovias":      [],
+        "impacta_ira":   nivel in ("laranja", "vermelho"),
+    }
 
 
 @router.get("/")
 async def listar_noticias():
-    """
-    Retorna noticias de clima dos portais locais + boletins
-    automaticos gerados pelo Radar Recife baseados no IRA.
-    """
+    """Retorna noticias inteligentes + boletim automatico."""
     try:
-        noticias_rss, boletins = await __import__("asyncio").gather(
-            buscar_noticias_clima(),
-            _gerar_boletim_automatico(),
+        dados_clima, noticias = await asyncio.gather(
+            buscar_clima_atual(RECIFE_LAT, RECIFE_LON),
+            buscar_noticias_inteligentes(),
         )
 
-        # Boletins automaticos sempre aparecem primeiro
-        todas = boletins + noticias_rss
+        ira_tuple = calcular_ira(
+            volume_mm=dados_clima.get("volume_chuva") or 0,
+            prob_chuva=dados_clima.get("prob_chuva") or 0,
+            umidade=dados_clima.get("umidade") or 0,
+            risco_base=20,
+            acumulado_24h=dados_clima.get("acumulado_24h") or 0,
+            acumulado_48h=dados_clima.get("acumulado_48h") or 0,
+            acumulado_72h=dados_clima.get("acumulado_72h") or 0,
+        )
+        ira, _ = ira_tuple
+        nivel  = classificar_nivel(ira)
+
+        boletim  = _gerar_boletim(dados_clima, ira, nivel)
+        todas    = [boletim] + noticias
+
+        # Estatisticas de impacto
+        criticas  = [n for n in noticias if n["nivel"] == "vermelho"]
+        alertas   = [n for n in noticias if n["nivel"] == "laranja"]
+        atencoes  = [n for n in noticias if n["nivel"] == "amarelo"]
+        bairros_afetados = list({b for n in noticias for b in n.get("bairros", [])})
+        rodovias_afetadas = list({r for n in noticias for r in n.get("rodovias", [])})
 
         return {
-            "total": len(todas),
-            "noticias": todas,
-            "atualizado_em": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "total":             len(todas),
+            "noticias":          todas,
+            "resumo": {
+                "criticas":          len(criticas),
+                "alertas":           len(alertas),
+                "atencoes":          len(atencoes),
+                "bairros_afetados":  bairros_afetados,
+                "rodovias_afetadas": rodovias_afetadas,
+                "ira_atual":         ira,
+                "nivel_atual":       nivel,
+            },
+            "atualizado_em": datetime.now(tz=TZ_RECIFE).strftime("%Y-%m-%d %H:%M:%S"),
+        }
+    except Exception as erro:
+        raise HTTPException(status_code=503, detail=str(erro))
+
+
+@router.get("/impacto")
+async def impacto_bairros():
+    """
+    Retorna quais bairros estao sendo citados nas noticias
+    e o impacto estimado no IRA de cada um.
+    """
+    try:
+        noticias = await buscar_noticias_inteligentes()
+
+        impacto: dict = {}
+        for noticia in noticias:
+            if not noticia.get("impacta_ira"):
+                continue
+            for bairro in noticia.get("bairros", []):
+                if bairro not in impacto:
+                    impacto[bairro] = {
+                        "bairro":   bairro,
+                        "noticias": [],
+                        "nivel_max": "verde",
+                        "fontes":   [],
+                    }
+                impacto[bairro]["noticias"].append(noticia["titulo"][:80])
+                impacto[bairro]["fontes"].append(noticia["fonte"])
+                # Eleva nivel se necessario
+                niveis = ["verde", "amarelo", "laranja", "vermelho"]
+                atual  = impacto[bairro]["nivel_max"]
+                novo   = noticia["nivel"]
+                if niveis.index(novo) > niveis.index(atual):
+                    impacto[bairro]["nivel_max"] = novo
+
+        return {
+            "total_bairros_afetados": len(impacto),
+            "bairros": list(impacto.values()),
+            "atualizado_em": datetime.now(tz=TZ_RECIFE).strftime("%Y-%m-%d %H:%M:%S"),
         }
     except Exception as erro:
         raise HTTPException(status_code=503, detail=str(erro))
