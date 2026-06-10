@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
-from app.api.routes import clima, bairros, noticias
+from app.api.routes import clima, bairros, noticias, el_nino
 
 settings = get_settings()
 
@@ -29,6 +29,7 @@ app.add_middleware(
 app.include_router(clima.router,   prefix="/api/clima",   tags=["Clima"])
 app.include_router(bairros.router, prefix="/api/bairros", tags=["Bairros"])
 app.include_router(noticias.router, prefix="/api/noticias", tags=["Noticias"])
+app.include_router(el_nino.router,  prefix="/api/elnino",   tags=["El Nino"])
 
 # ── Health check ──────────────────────────────────────────
 @app.get("/api/health", tags=["Sistema"])

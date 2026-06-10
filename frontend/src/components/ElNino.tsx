@@ -1,102 +1,160 @@
 // ============================================================
 //  src/components/ElNino.tsx
-//  Card de monitoramento do El Nino e La Nina.
+//  Card El Nino / La Nina com dados reais via NOAA.
+//  Fonte: NOAA Climate Prediction Center — indice ONI oficial.
 // ============================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import api from '../services/api'
 
-const DADOS = {
-  fenomeno: 'el_nino',
-  indice_oni: 1.8,
-  aumento_chuva: '+43%',
-  duracao_estimada: '3 meses',
-  impactos: [
-    'Volume de chuvas 40% acima da media historica entre junho e agosto',
-    'Maior risco de eventos extremos na Zona Sul e Oeste de Recife',
-    'Tendencia de enfraquecimento a partir de setembro de 2026',
-  ],
-  tendencia: [
-    { mes: 'Jun/26', valor: 1.8 },
-    { mes: 'Jul/26', valor: 1.5 },
-    { mes: 'Ago/26', valor: 1.1 },
-    { mes: 'Set/26', valor: 0.4 },
-  ],
-  referencia: 'jun/2026',
-  atualizado_em: '01/06/2026 as 08:00',
+interface DadosElNino {
+  oni_atual: number
+  periodo_ref: string
+  fenomeno: string
+  intensidade: string
+  label_status: string
+  cor: string
+  bg: string
+  variacao: number
+  tendencia: string
+  ponteiro: number
+  impactos: string[]
+  tendencia_hist: { periodo: string; oni: number }[]
+  fonte: string
+  atualizado_em: string
 }
 
 export function ElNino() {
-  const ponteiro = Math.min(Math.max((DADOS.indice_oni + 2) / 4 * 100, 0), 100)
+  const [dados, setDados] = useState<DadosElNino | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState(false)
+
+  useEffect(() => {
+    carregar()
+    // Atualiza a cada 6 horas — NOAA atualiza mensalmente
+    const intervalo = setInterval(carregar, 6 * 3600 * 1000)
+    return () => clearInterval(intervalo)
+  }, [])
+
+  async function carregar() {
+    try {
+      const resp = await api.get('/elnino/')
+      setDados(resp.data)
+      setErro(false)
+    } catch (e) {
+      setErro(true)
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (loading) return (
+    <div style={{ background: 'var(--rr-card)', border: '0.5px solid var(--rr-border)', borderRadius: 8, padding: 14 }}>
+      <div style={{ fontSize: 11, color: 'var(--rr-muted)', textAlign: 'center', padding: '10px 0' }}>
+        Carregando dados NOAA...
+      </div>
+    </div>
+  )
+
+  if (erro || !dados) return null
+
+  const sinal = dados.oni_atual >= 0 ? '+' : ''
+  const variacaoSinal = dados.variacao >= 0 ? '+' : ''
+
+  // Nome do fenomeno em portugues
+  const nomeFenomeno = dados.fenomeno === 'el_nino' ? 'El Niño'
+    : dados.fenomeno === 'la_nina' ? 'La Niña'
+    : 'Neutro'
+
+  const tendenciaLabel = dados.tendencia === 'aquecendo' ? '↑ aquecendo'
+    : dados.tendencia === 'esfriando' ? '↓ esfriando'
+    : '→ estável'
+
+  const tendenciaCor = dados.tendencia === 'aquecendo' ? '#ef4444'
+    : dados.tendencia === 'esfriando' ? '#60a5fa'
+    : '#22c55e'
 
   return (
     <div style={{
       background: 'var(--rr-card)',
-      border: '0.5px solid #7f1d1d',
+      border: `0.5px solid ${dados.bg}`,
       borderRadius: 8,
       padding: 14,
     }}>
-      <div style={{
-        display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', marginBottom: 12,
-      }}>
+      {/* Cabeçalho */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--rr-text)' }}>
-          🌍 El Nino — Super Episodio Ativo
+          🌊 {nomeFenomeno} — {dados.intensidade}
         </div>
-        <span style={{ background: '#7f1d1d', color: '#fca5a5', fontSize: 10, padding: '3px 8px', borderRadius: 4 }}>
-          FORTE — ATIVO
+        <span style={{ background: dados.bg, color: dados.cor, fontSize: 10, padding: '3px 8px', borderRadius: 4 }}>
+          {dados.label_status}
         </span>
       </div>
 
+      {/* Métricas principais */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
-        {[
-          { label: 'Indice ONI', value: `+${DADOS.indice_oni}`, cor: '#ef4444', sub: 'El Nino forte' },
-          { label: 'Chuva acima da media', value: DADOS.aumento_chuva, cor: '#f97316', sub: 'em Recife' },
-          { label: 'Duracao estimada', value: DADOS.duracao_estimada, cor: '#22c55e', sub: 'ate set/2026' },
-        ].map((item, i) => (
-          <div key={i} style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, color: 'var(--rr-muted)', marginBottom: 4 }}>{item.label}</div>
-            <div style={{ fontSize: 18, fontWeight: 500, color: item.cor }}>{item.value}</div>
-            <div style={{ fontSize: 10, color: 'var(--rr-muted)', marginTop: 2 }}>{item.sub}</div>
+        <div style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
+          <div style={{ fontSize: 10, color: 'var(--rr-muted)', marginBottom: 4 }}>Índice ONI</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: dados.cor }}>
+            {sinal}{dados.oni_atual.toFixed(2)}
           </div>
-        ))}
+          <div style={{ fontSize: 9, color: tendenciaCor, marginTop: 2 }}>
+            {variacaoSinal}{dados.variacao.toFixed(2)} · {tendenciaLabel}
+          </div>
+        </div>
+        <div style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
+          <div style={{ fontSize: 10, color: 'var(--rr-muted)', marginBottom: 4 }}>Período</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--rr-text)' }}>{dados.periodo_ref}</div>
+          <div style={{ fontSize: 9, color: 'var(--rr-muted)', marginTop: 2 }}>referência NOAA</div>
+        </div>
+        <div style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: 10, textAlign: 'center' }}>
+          <div style={{ fontSize: 10, color: 'var(--rr-muted)', marginBottom: 4 }}>Situação</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: dados.cor }}>{nomeFenomeno}</div>
+          <div style={{ fontSize: 9, color: 'var(--rr-muted)', marginTop: 2 }}>{dados.intensidade}</div>
+        </div>
       </div>
 
+      {/* Escala visual ONI */}
       <div style={{ background: 'var(--rr-border)', borderRadius: 3, height: 6, position: 'relative', marginBottom: 6 }}>
-        <div style={{ height: 6, borderRadius: 3, background: 'linear-gradient(90deg, #1d4ed8 0%, #22c55e 45%, #f97316 70%, #ef4444 100%)', width: '100%' }} />
-        <div style={{ position: 'absolute', top: -4, left: `${ponteiro}%`, transform: 'translateX(-50%)', width: 3, height: 14, background: '#fff', borderRadius: 2 }} />
+        <div style={{ height: 6, borderRadius: 3, background: 'linear-gradient(90deg, #1d4ed8 0%, #60a5fa 25%, #22c55e 50%, #eab308 65%, #f97316 80%, #ef4444 100%)', width: '100%' }} />
+        <div style={{ position: 'absolute', top: -4, left: `${dados.ponteiro}%`, transform: 'translateX(-50%)', width: 3, height: 14, background: '#fff', borderRadius: 2 }} />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--rr-muted)', marginBottom: 12 }}>
-        <span style={{ color: '#3d8fe0' }}>La Nina forte</span>
+        <span style={{ color: '#3b82f6' }}>La Niña forte</span>
         <span>Neutro</span>
-        <span style={{ color: '#ef4444' }}>El Nino forte</span>
+        <span style={{ color: '#ef4444' }}>El Niño forte</span>
       </div>
 
+      {/* Impactos para Recife */}
       <div style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: 10, marginBottom: 12 }}>
         <div style={{ fontSize: 10, color: 'var(--rr-sub)', marginBottom: 8 }}>
-          ⚠️ Impacto esperado para Recife
+          📍 Impacto esperado para Recife/PE
         </div>
-        {DADOS.impactos.map((imp, i) => (
+        {dados.impactos.map((imp, i) => (
           <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 6, fontSize: 11, color: 'var(--rr-sub)', lineHeight: 1.4 }}>
-            <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#ef4444', marginTop: 4, flexShrink: 0 }} />
+            <div style={{ width: 5, height: 5, borderRadius: '50%', background: dados.cor, marginTop: 4, flexShrink: 0 }} />
             {imp}
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginBottom: 10 }}>
-        {DADOS.tendencia.map((t, i) => (
-          <div key={i} style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: '8px 4px', textAlign: 'center' }}>
-            <div style={{ fontSize: 9, color: 'var(--rr-muted)', marginBottom: 3 }}>{t.mes}</div>
-            <div style={{ fontSize: 13, fontWeight: 500, color: t.valor >= 0.5 ? '#ef4444' : '#22c55e' }}>
-              {t.valor > 0 ? '+' : ''}{t.valor}
+      {/* Tendência histórica */}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${dados.tendencia_hist.length}, 1fr)`, gap: 4, marginBottom: 10 }}>
+        {dados.tendencia_hist.map((t, i) => (
+          <div key={i} style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: '6px 4px', textAlign: 'center' }}>
+            <div style={{ fontSize: 8, color: 'var(--rr-muted)', marginBottom: 3 }}>{t.periodo}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: t.oni >= 0.5 ? '#ef4444' : t.oni <= -0.5 ? '#60a5fa' : '#22c55e' }}>
+              {t.oni >= 0 ? '+' : ''}{t.oni.toFixed(2)}
             </div>
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--rr-muted)', borderTop: '0.5px solid var(--rr-border)', paddingTop: 8 }}>
-        <span>Fonte: NOAA / CPTEC-INPE · Referencia: {DADOS.referencia}</span>
-        <span>Ultima att: {DADOS.atualizado_em}</span>
+      {/* Rodapé com fonte */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--rr-muted)', borderTop: '0.5px solid var(--rr-border)', paddingTop: 8 }}>
+        <span>{dados.fonte}</span>
+        <span>Ref: {dados.periodo_ref} · {dados.atualizado_em}</span>
       </div>
     </div>
   )
