@@ -158,16 +158,17 @@ function App() {
 
       setClima(climaResp.data)
 
-      // Filtra proximas 8 horas da previsao
+      // Filtra proximas 8 horas comparando pelo campo hora real
       const agora = new Date()
-      const horaAtual = agora.getHours()
       const proximas = previsaoResp.data
-        .filter((_: any, i: number) => i >= horaAtual && i < horaAtual + 8)
-        .map((p: any) => ({
-          hora: new Date(p.hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        .filter((p: any) => new Date(p.hora) >= agora)
+        .slice(0, 8)
+        .map((p: any, i: number) => ({
+          hora: i === 0 ? 'Agora' : new Date(p.hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
           temperatura: p.temperatura ?? 0,
           prob_chuva: p.prob_chuva ?? 0,
           volume_chuva: p.volume_chuva ?? 0,
+          codigo_tempo: p.codigo_tempo ?? 0,
         }))
       setPrevisao(proximas)
 

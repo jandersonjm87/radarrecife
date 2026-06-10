@@ -24,7 +24,11 @@ const NIVEL_LABEL: Record<string, string> = {
   verde: 'Normal', amarelo: 'Atencao', laranja: 'Alerta', vermelho: 'Critico',
 }
 
-export function BairrosLista() {
+interface BairrosListaProps {
+  onBairroClick?: (bairro: any) => void
+}
+
+export function BairrosLista({ onBairroClick }: BairrosListaProps) {
   const [bairros, setBairros] = useState<BairroStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [busca, setBusca] = useState('')
@@ -90,10 +94,11 @@ export function BairrosLista() {
         ) : filtrados.map((b, i) => {
           const style = NIVEL_STYLE[b.nivel] || NIVEL_STYLE.verde
           return (
-            <div key={b.nome} style={{
+            <div key={b.nome} onClick={() => onBairroClick && onBairroClick(b)} style={{
               display: 'flex', alignItems: 'center',
               justifyContent: 'space-between',
               padding: '6px 0',
+              cursor: onBairroClick ? 'pointer' : 'default',
               borderBottom: '0.5px solid var(--rr-border)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
