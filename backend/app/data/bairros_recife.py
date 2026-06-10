@@ -120,12 +120,58 @@ BAIRROS_RECIFE = [
 ]
 
 
+# Pontos criticos de rodovias de Pernambuco.
+# Cada ponto possui campo "ativo" — apenas pontos ativos sao exibidos.
+# A ativacao ocorre via noticias verificadas ou alertas oficiais.
+# Nunca ativar manualmente sem evidencia confirmada (manifesto anti-alarme).
 PONTOS_CRITICOS_BR232 = [
-    {"rodovia": "BR-232", "km": 29,  "local": "Moreno",                 "municipio": "Moreno",                 "tipo": "barro_pista",    "latitude": -8.1200, "longitude": -35.0900},
-    {"rodovia": "BR-232", "km": 40,  "local": "Vitoria de Santo Antao", "municipio": "Vitoria de Santo Antao", "tipo": "alagamento",     "latitude": -8.1200, "longitude": -35.2900},
-    {"rodovia": "BR-232", "km": 41,  "local": "Vitoria de Santo Antao", "municipio": "Vitoria de Santo Antao", "tipo": "alagamento",     "latitude": -8.1219, "longitude": -35.2950},
-    {"rodovia": "BR-232", "km": 80,  "local": "Gravata",                "municipio": "Gravata",                "tipo": "deslizamento",   "latitude": -8.2019, "longitude": -35.5639},
-    {"rodovia": "BR-232", "km": 130, "local": "Caruaru",                "municipio": "Caruaru",                "tipo": "alagamento",     "latitude": -8.2769, "longitude": -35.9761},
-    {"rodovia": "BR-101", "km": 60,  "local": "Paulista",               "municipio": "Paulista",               "tipo": "alagamento",     "latitude": -7.9400, "longitude": -34.8800},
-    {"rodovia": "BR-101", "km": 80,  "local": "Abreu e Lima",           "municipio": "Abreu e Lima",           "tipo": "alagamento",     "latitude": -7.9100, "longitude": -34.8980},
+    {
+        "rodovia": "BR-232", "km": 29,
+        "local": "Moreno", "municipio": "Moreno",
+        "tipo": "barro_pista",
+        "latitude": -8.1200, "longitude": -35.0900,
+        "ativo": False, "fonte": None, "registrado_em": None,
+    },
+    {
+        "rodovia": "BR-232", "km": 40,
+        "local": "Vitoria de Santo Antao", "municipio": "Vitoria de Santo Antao",
+        "tipo": "alagamento",
+        "latitude": -8.1200, "longitude": -35.2900,
+        "ativo": False, "fonte": None, "registrado_em": None,
+    },
+    {
+        "rodovia": "BR-232", "km": 41,
+        "local": "Vitoria de Santo Antao", "municipio": "Vitoria de Santo Antao",
+        "tipo": "alagamento",
+        "latitude": -8.1219, "longitude": -35.2950,
+        "ativo": False, "fonte": None, "registrado_em": None,
+    },
+    {
+        "rodovia": "BR-232", "km": 80,
+        "local": "Gravata", "municipio": "Gravata",
+        "tipo": "deslizamento",
+        "latitude": -8.2019, "longitude": -35.5639,
+        "ativo": False, "fonte": None, "registrado_em": None,
+    },
+    {
+        "rodovia": "BR-232", "km": 130,
+        "local": "Caruaru", "municipio": "Caruaru",
+        "tipo": "alagamento",
+        "latitude": -8.2769, "longitude": -35.9761,
+        "ativo": False, "fonte": None, "registrado_em": None,
+    },
+    {
+        "rodovia": "BR-101", "km": 60,
+        "local": "Paulista", "municipio": "Paulista",
+        "tipo": "alagamento",
+        "latitude": -7.9400, "longitude": -34.8800,
+        "ativo": False, "fonte": None, "registrado_em": None,
+    },
+    {
+        "rodovia": "BR-101", "km": 80,
+        "local": "Abreu e Lima", "municipio": "Abreu e Lima",
+        "tipo": "alagamento",
+        "latitude": -7.9100, "longitude": -34.8980,
+        "ativo": False, "fonte": None, "registrado_em": None,
+    },
 ]

@@ -128,8 +128,14 @@ async def clima_bairro(nome: str):
 
 @router.get("/rodovias/br232")
 async def pontos_criticos_br232():
-    """Retorna pontos criticos mapeados na BR-232."""
+    """
+    Retorna apenas pontos criticos ATIVOS nas rodovias de PE.
+    Pontos inativos nao sao exibidos — manifesto anti-alarme.
+    Um ponto so e ativado por noticia verificada ou alerta oficial.
+    """
+    ativos = [p for p in PONTOS_CRITICOS_BR232 if p.get("ativo")]
     return {
-        "total": len(PONTOS_CRITICOS_BR232),
-        "pontos": PONTOS_CRITICOS_BR232,
+        "total": len(ativos),
+        "pontos": ativos,
+        "monitorados": len(PONTOS_CRITICOS_BR232),
     }
