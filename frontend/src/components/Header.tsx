@@ -1,21 +1,23 @@
 // ============================================================
 //  src/components/Header.tsx
-//  Cabecalho do Radar Recife com logo, status e hora.
+//  Cabecalho do Radar Recife com logo, status, hora e localizacao.
 // ============================================================
 
 import { useState, useEffect } from 'react'
-import { Cloud } from 'lucide-react'
+import { Cloud, MapPin } from 'lucide-react'
 
-export function Header() {
+interface HeaderProps {
+  localidade?: string  // cidade/bairro detectado pela geolocalizacao
+}
+
+export function Header({ localidade }: HeaderProps) {
   const [hora, setHora] = useState('')
 
   useEffect(() => {
     const atualizar = () => {
       const agora = new Date()
       setHora(agora.toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
       }))
     }
     atualizar()
@@ -58,8 +60,16 @@ export function Header() {
           }} />
           <span style={{ fontSize: 12, color: 'var(--rr-sub)' }}>Online</span>
         </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <MapPin size={11} color="var(--rr-blue-l)" />
+          <span style={{ fontSize: 12, color: 'var(--rr-muted)' }}>
+            {localidade || 'Recife, PE'}
+          </span>
+        </div>
+
         <span style={{ fontSize: 12, color: 'var(--rr-muted)' }}>
-          Recife, PE &nbsp;|&nbsp; {hora}
+          {hora}
         </span>
       </div>
     </header>

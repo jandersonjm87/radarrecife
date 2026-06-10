@@ -10,8 +10,10 @@ const api = axios.create({
 })
 
 export const climaApi = {
-  atual:    () => api.get('/clima/atual'),
-  previsao: () => api.get('/clima/previsao'),
+  atual:           () => api.get('/clima/atual'),
+  previsao:        () => api.get('/clima/previsao'),
+  porCoordenada:   (lat: number, lng: number, nome?: string) =>
+    api.get(`/clima/bairro/${lat}/${lng}${nome ? `?nome=${encodeURIComponent(nome)}` : ''}`),
 }
 
 export const bairrosApi = {
