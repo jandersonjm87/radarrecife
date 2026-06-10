@@ -23,4 +23,9 @@ export const bairrosApi = {
   br232:   () => api.get('/bairros/rodovias/br232'),
 }
 
+export const noticiasApi = {
+  listar:  () => api.get('/noticias/'),
+  impacto: () => api.get('/noticias/impacto'),
+}
+
 export default api

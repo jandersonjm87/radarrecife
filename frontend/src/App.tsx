@@ -16,6 +16,7 @@ import { BairrosLista } from './components/BairrosLista'
 import { MapaRecife } from './components/MapaRecife'
 import { Rodovias } from './components/Rodovias'
 import { ElNino } from './components/ElNino'
+import { NoticiasInteligentes } from './components/NoticiasInteligentes'
 import { climaApi, bairrosApi } from './services/api'
 import api from './services/api'
 
@@ -328,10 +329,7 @@ function App() {
             <Rodovias />
             <ElNino />
 
-            <div style={{ background: 'var(--rr-card)', border: '0.5px solid var(--rr-border)', borderRadius: 8, padding: 14 }}>
-              <div style={{ fontSize: 11, color: 'var(--rr-sub)', marginBottom: 10 }}>Noticias locais agora</div>
-              <div style={{ fontSize: 11, color: 'var(--rr-muted)', textAlign: 'center', padding: '10px 0' }}>Feed de noticias — em breve</div>
-            </div>
+            <NoticiasInteligentes />
 
           </div>
         </div>
