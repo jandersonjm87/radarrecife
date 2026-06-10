@@ -1,7 +1,7 @@
 # ============================================================
 #  backend/app/services/clima_service.py
 # ============================================================
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from app.integrations.open_meteo import (
     buscar_clima_atual, buscar_previsao_horaria,
     calcular_ira, classificar_nivel, descrever_tempo,
@@ -60,7 +60,7 @@ async def buscar_clima_bairro(
         "ira":              ira,
         "nivel":            nivel,
         "motivos":          motivos,
-        "atualizado_em":    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "atualizado_em":    datetime.now(tz=timezone(timedelta(hours=-3))).strftime("%Y-%m-%d %H:%M:%S"),
     }
 
 
