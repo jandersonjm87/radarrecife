@@ -45,12 +45,45 @@ function analisarCondicao(codigo?: number, volume?: number, uv?: number) {
   return { icone: <Sun size={28} color="#fbbf24" />, label: 'Tempo aberto', intensidade: `UV ${uvVal} — ${uvLabel}`, cor: uvCor, escala: Math.min(Math.round(uvVal / 3), 4) }
 }
 
-function getIconeHora(prob: number): string {
-  if (prob >= 80) return '⛈️'
-  if (prob >= 60) return '🌧️'
-  if (prob >= 40) return '🌦️'
-  if (prob >= 20) return '🌤️'
-  return '☀️'
+function getIconeHora(prob: number, codigo?: number, horaStr?: string): string {
+  // Determina se e dia ou noite baseado na hora
+  let ehNoite = false
+  if (horaStr) {
+    try {
+      const h = new Date(horaStr).getHours()
+      ehNoite = h < 6 || h >= 18
+    } catch { ehNoite = false }
+  }
+
+  const cod = codigo || 0
+
+  // Tempestade — sempre o mesmo
+  if (cod >= 95 || prob >= 90) return '⛈️'
+
+  // Chuva forte
+  if (cod >= 80 || prob >= 70) return '🌧️'
+
+  // Chuva moderada
+  if (cod >= 61 || prob >= 50) return ehNoite ? '🌧️' : '🌦️'
+
+  // Garoa / chuva leve
+  if (cod >= 51 || prob >= 30) return ehNoite ? '🌦️' : '🌦️'
+
+  // Neblina
+  if (cod === 45 || cod === 48) return '🌫️'
+
+  // Nublado
+  if (cod === 3) return '☁️'
+
+  // Parcialmente nublado
+  if (cod === 2) return ehNoite ? '🌙' : '⛅'
+
+  // Principalmente limpo
+  if (cod === 1) return ehNoite ? '🌙' : '🌤️'
+
+  // Ceu limpo
+  if (prob >= 20) return ehNoite ? '🌙' : '🌤️'
+  return ehNoite ? '🌙' : '☀️'
 }
 
 function getCorProb(prob: number): string {
@@ -119,6 +152,7 @@ function App() {
         .slice(0, 8)
         .map((p: any, i: number) => ({
           hora: i === 0 ? 'Agora' : new Date(p.hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+          hora_raw: p.hora,
           temperatura: p.temperatura ?? 0,
           prob_chuva: p.prob_chuva ?? 0,
           volume_chuva: p.volume_chuva ?? 0,
@@ -317,7 +351,7 @@ function App() {
                     {previsao.map((p, i) => (
                       <div key={i} style={{ background: 'var(--rr-surface)', border: '0.5px solid var(--rr-border)', borderRadius: 6, padding: '8px 4px', textAlign: 'center' }}>
                         <div style={{ fontSize: 10, color: 'var(--rr-muted)', marginBottom: 4 }}>{p.hora}</div>
-                        <div style={{ fontSize: 18, marginBottom: 4 }}>{getIconeHora(p.prob_chuva)}</div>
+                        <div style={{ fontSize: 18, marginBottom: 4 }}>{getIconeHora(p.prob_chuva, p.codigo_tempo, p.hora_raw)}</div>
                         <div style={{ fontSize: 12, fontWeight: 500, color: getCorProb(p.prob_chuva) }}>{p.prob_chuva}%</div>
                         <div style={{ fontSize: 10, color: 'var(--rr-muted)', marginTop: 2 }}>{p.temperatura}°C</div>
                         {p.volume_chuva > 0 && <div style={{ fontSize: 9, color: 'var(--rr-blue-l)', marginTop: 2 }}>{p.volume_chuva}mm</div>}
