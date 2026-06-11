@@ -15,6 +15,7 @@ import { IRA } from './components/IRA'
 import { BairrosLista } from './components/BairrosLista'
 import { MapaRecife } from './components/MapaRecife'
 import { Rodovias } from './components/Rodovias'
+import { Tooltip } from './components/Tooltip'
 import { ElNino } from './components/ElNino'
 import { NoticiasInteligentes } from './components/NoticiasInteligentes'
 import { climaApi, bairrosApi } from './services/api'
@@ -249,20 +250,22 @@ function App() {
               {/* Grade de dados meteorológicos */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
                 {[
-                  { icon: <Droplets size={12} color="var(--rr-blue-l)" />, label: 'Umidade', value: `${clima?.umidade ?? '--'}%` },
-                  { icon: <Wind size={12} color="var(--rr-blue-l)" />, label: 'Vento', value: `${clima?.velocidade_vento ?? '--'} km/h`, sub: dirVento(clima?.direcao_vento) },
-                  { icon: <Wind size={12} color="#94a3b8" />, label: 'Rajada', value: `${clima?.rajada_vento ?? '--'} km/h` },
-                  { icon: <Gauge size={12} color="var(--rr-blue-l)" />, label: 'Pressão', value: `${clima?.pressao ?? '--'}` , sub: 'hPa' },
-                  { icon: <CloudRain size={12} color="var(--rr-blue-l)" />, label: 'Chuva agora', value: `${clima?.volume_chuva ?? '--'}mm`, sub: `Prob. ${clima?.prob_chuva ?? '--'}%` },
-                  { icon: <Sun size={12} color="#fbbf24" />, label: 'UV agora', value: `${clima?.indice_uv ?? '--'}`, sub: `Máx ${clima?.uv_max_dia ?? '--'}` },
-                  { icon: <Eye size={12} color="var(--rr-blue-l)" />, label: 'Visibilidade', value: clima?.visibilidade ? `${(clima.visibilidade / 1000).toFixed(1)}km` : '--' },
-                  { icon: <Leaf size={12} color="#22c55e" />, label: 'Qualidade ar', value: clima?.aqi_label ?? '--', sub: `AQI ${clima?.aqi ?? '--'}` },
-                ].map(({ icon, label, value, sub }) => (
+                  { icon: <Droplets size={12} color="var(--rr-blue-l)" />, label: 'Umidade', value: `${clima?.umidade ?? '--'}%`, tooltip: 'Umidade relativa do ar. Acima de 90% indica solo saturado, aumentando o risco de alagamento.' },
+                  { icon: <Wind size={12} color="var(--rr-blue-l)" />, label: 'Vento', value: `${clima?.velocidade_vento ?? '--'} km/h`, sub: dirVento(clima?.direcao_vento), tooltip: 'Velocidade e direção do vento a 10 metros de altura. Rajadas fortes podem derrubar árvores e causar danos.' },
+                  { icon: <Wind size={12} color="#94a3b8" />, label: 'Rajada', value: `${clima?.rajada_vento ?? '--'} km/h`, tooltip: 'Velocidade máxima de rajada de vento. Rajadas acima de 60 km/h são consideradas perigosas.' },
+                  { icon: <Gauge size={12} color="var(--rr-blue-l)" />, label: 'Pressão', value: `${clima?.pressao ?? '--'}` , sub: 'hPa', tooltip: 'Pressão atmosférica em hectopascais. Queda rápida de pressão indica aproximação de tempestades.' },
+                  { icon: <CloudRain size={12} color="var(--rr-blue-l)" />, label: 'Chuva agora', value: `${clima?.volume_chuva ?? '--'}mm`, sub: `Prob. ${clima?.prob_chuva ?? '--'}%`, tooltip: 'Volume de precipitação na hora atual (mm/h) e probabilidade de chuva prevista para as próximas horas.' },
+                  { icon: <Sun size={12} color="#fbbf24" />, label: 'UV agora', value: `${clima?.indice_uv ?? '--'}`, sub: `Máx ${clima?.uv_max_dia ?? '--'}`, tooltip: 'Índice UV atual e máximo do dia. 0-2 Baixo, 3-5 Moderado, 6-7 Alto, 8-10 Muito alto, 11+ Extremo. Use protetor acima de 3.' },
+                  { icon: <Eye size={12} color="var(--rr-blue-l)" />, label: 'Visibilidade', value: clima?.visibilidade ? `${(clima.visibilidade / 1000).toFixed(1)}km` : '--', tooltip: 'Distância máxima de visibilidade. Abaixo de 1km indica neblina densa ou chuva forte. Cuidado ao dirigir.' },
+                  { icon: <Leaf size={12} color="#22c55e" />, label: 'Qualidade ar', value: clima?.aqi_label ?? '--', sub: `AQI ${clima?.aqi ?? '--'}`, tooltip: 'AQI (Air Quality Index) europeu. Mede PM2.5, PM10, NO2, CO e ozônio. Muito boa (0-20), Boa (21-40), Moderada (41-60), Ruim (61-80).' },
+                ].map(({ icon, label, value, sub, tooltip }: any) => (
                   <div key={label} style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: '8px 10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                      {icon}
-                      <span style={{ fontSize: 9, color: 'var(--rr-muted)' }}>{label}</span>
-                    </div>
+                    <Tooltip texto={tooltip || label} posicao="top">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4, cursor: 'help' }}>
+                        {icon}
+                        <span style={{ fontSize: 9, color: 'var(--rr-muted)' }}>{label} ⓘ</span>
+                      </div>
+                    </Tooltip>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--rr-text)' }}>{value}</div>
                     {sub && <div style={{ fontSize: 9, color: 'var(--rr-muted)', marginTop: 1 }}>{sub}</div>}
                   </div>
