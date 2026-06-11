@@ -52,6 +52,7 @@ async def buscar_clima_bairro(
         "por_lua":          dados.get("por_lua"),
         "fase_lua":         dados.get("fase_lua"),
         "fase_lua_emoji":   dados.get("fase_lua_emoji"),
+        "lua_iluminacao":   dados.get("lua_iluminacao"),
         "aqi":              dados.get("aqi"),
         "aqi_label":        dados.get("aqi_label"),
         "pm25":             dados.get("pm25"),

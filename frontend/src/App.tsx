@@ -331,16 +331,18 @@ function App() {
               {/* Dados astronômicos */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
                 {[
-                  { emoji: '🌅', label: 'Nascer sol', valor: clima?.nascer_sol ?? '--' },
-                  { emoji: '🌇', label: 'Pôr do sol', valor: clima?.por_sol ?? '--' },
-                  { emoji: clima?.fase_lua_emoji ?? '🌙', label: 'Fase da lua', valor: clima?.fase_lua ?? '--' },
-                  { emoji: '💡', label: 'Iluminação', valor: clima?.lua_iluminacao != null ? `${clima.lua_iluminacao}%` : '--' },
-                ].map(({ emoji, label, valor }) => (
-                  <div key={label} style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: '8px 10px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 18, marginBottom: 2 }}>{emoji}</div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--rr-text)' }}>{valor}</div>
-                    <div style={{ fontSize: 9, color: 'var(--rr-muted)', marginTop: 1 }}>{label}</div>
-                  </div>
+                  { emoji: '🌅', label: 'Nascer sol', valor: clima?.nascer_sol ?? '--', tooltip: 'Horário do nascer do sol para sua localização atual. Calculado pelo Open-Meteo com base nas coordenadas GPS.' },
+                  { emoji: '🌇', label: 'Pôr do sol', valor: clima?.por_sol ?? '--', tooltip: 'Horário do pôr do sol para sua localização atual. Após esse horário inicia o período noturno.' },
+                  { emoji: clima?.fase_lua_emoji ?? '🌙', label: 'Fase da lua', valor: clima?.fase_lua ?? '--', tooltip: 'Fase atual da lua calculada pelo ciclo sinódico de 29,5 dias. Lua Cheia e Lua Nova potencializam as marés (marés de sizígia), aumentando risco de alagamentos costeiros em Recife.' },
+                  { emoji: '💡', label: 'Iluminação', valor: clima?.lua_iluminacao != null ? `${clima.lua_iluminacao}%` : '--', tooltip: 'Percentual da face da lua iluminada pelo sol. 0% = Lua Nova. 50% = Quarto Crescente/Minguante. 100% = Lua Cheia. Influencia nas marés e alagamentos costeiros.' },
+                ].map(({ emoji, label, valor, tooltip }: any) => (
+                  <Tooltip key={label} texto={tooltip} posicao="top">
+                    <div style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: '8px 10px', textAlign: 'center', cursor: 'help', width: '100%' }}>
+                      <div style={{ fontSize: 18, marginBottom: 2 }}>{emoji}</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--rr-text)' }}>{valor}</div>
+                      <div style={{ fontSize: 9, color: 'var(--rr-muted)', marginTop: 1 }}>{label} ⓘ</div>
+                    </div>
+                  </Tooltip>
                 ))}
               </div>
 
