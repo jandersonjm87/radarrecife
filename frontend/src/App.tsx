@@ -147,17 +147,23 @@ function App() {
       ])
       setClima(climaResp.data)
       const agora = new Date()
-      const proximas = previsaoResp.data
+      // Pega todas as horas futuras — se tiver menos de 8, completa com proximas do dia
+      const futuras = previsaoResp.data
         .filter((p: any) => new Date(p.hora) >= agora)
-        .slice(0, 8)
-        .map((p: any, i: number) => ({
-          hora: i === 0 ? 'Agora' : new Date(p.hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-          hora_raw: p.hora,
-          temperatura: p.temperatura ?? 0,
-          prob_chuva: p.prob_chuva ?? 0,
-          volume_chuva: p.volume_chuva ?? 0,
-          codigo_tempo: p.codigo_tempo ?? 0,
-        }))
+
+      // Se tiver menos de 8 horas, busca do inicio do array para completar
+      const listaPrevisao = futuras.length >= 8
+        ? futuras.slice(0, 8)
+        : [...futuras, ...previsaoResp.data.slice(0, 8 - futuras.length)]
+
+      const proximas = listaPrevisao.slice(0, 8).map((p: any, i: number) => ({
+        hora: i === 0 ? 'Agora' : new Date(p.hora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        hora_raw: p.hora,
+        temperatura: p.temperatura ?? 0,
+        prob_chuva: p.prob_chuva ?? 0,
+        volume_chuva: p.volume_chuva ?? 0,
+        codigo_tempo: p.codigo_tempo ?? 0,
+      }))
       setPrevisao(proximas)
       const lista = bairrosResp.data.bairros.map((b: any) => ({ ...b }))
       setBairros(lista)

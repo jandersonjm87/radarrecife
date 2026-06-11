@@ -75,11 +75,20 @@ export function ElNino() {
     }}>
       {/* Cabeçalho */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <Tooltip texto="ENOS (El Niño-Oscilação Sul) é um fenômeno climático que altera o regime de chuvas globalmente. El Niño = aquecimento do Pacífico. La Niña = resfriamento. Impacta diretamente o volume de chuvas em Pernambuco.">
-          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--rr-text)', cursor: 'help' }}>
-            🌊 {nomeFenomeno} — {subtituloFenomeno}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ fontSize: 10, color: 'var(--rr-muted)', letterSpacing: '0.5px' }}>
+            MONITORAMENTO CLIMÁTICO GLOBAL
           </div>
-        </Tooltip>
+          <Tooltip texto="ENOS (El Niño-Oscilação Sul): fenômeno climático do Pacífico que altera o regime de chuvas no mundo inteiro. El Niño aquece o Pacífico e aumenta chuvas em PE. La Niña esfria e reduz. Fase Neutra = condições normais. Dados oficiais NOAA/CPC." posicao="bottom">
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--rr-text)', cursor: 'help', display: 'flex', alignItems: 'center', gap: 6 }}>
+              🌊 El Niño / La Niña
+              <span style={{ fontSize: 11, fontWeight: 400, color: dados.cor }}>
+                — {subtituloFenomeno}
+              </span>
+              <span style={{ fontSize: 10, color: 'var(--rr-muted)' }}>ⓘ</span>
+            </div>
+          </Tooltip>
+        </div>
         <span style={{ background: dados.bg, color: dados.cor, fontSize: 10, padding: '3px 8px', borderRadius: 4 }}>
           {dados.label_status}
         </span>
@@ -115,14 +124,22 @@ export function ElNino() {
       </div>
 
       {/* Escala visual */}
-      <Tooltip texto="Escala visual do índice ONI. O marcador branco indica a posição atual. Azul = La Niña forte. Verde = Neutro. Vermelho = El Niño forte.">
-        <div style={{ width: '100%', cursor: 'help' }}>
-          <div style={{ background: 'var(--rr-border)', borderRadius: 3, height: 6, position: 'relative', marginBottom: 6 }}>
-            <div style={{ height: 6, borderRadius: 3, background: 'linear-gradient(90deg, #1d4ed8 0%, #60a5fa 25%, #22c55e 50%, #eab308 65%, #f97316 80%, #ef4444 100%)', width: '100%' }} />
-            <div style={{ position: 'absolute', top: -4, left: `${dados.ponteiro}%`, transform: 'translateX(-50%)', width: 3, height: 14, background: '#fff', borderRadius: 2 }} />
-          </div>
+      {/* Barra ONI — sem Tooltip wrapper para nao quebrar width:100% */}
+      <div title="Escala visual do índice ONI (-2 a +2). Azul = La Niña forte. Verde = Neutro. Vermelho = El Niño forte." style={{ cursor: 'help', marginBottom: 6 }}>
+        <div style={{ position: 'relative', height: 8, borderRadius: 3, background: 'linear-gradient(90deg, #1d4ed8 0%, #60a5fa 25%, #22c55e 50%, #eab308 65%, #f97316 80%, #ef4444 100%)' }}>
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: `${Math.min(Math.max(dados.ponteiro, 2), 98)}%`,
+            transform: 'translate(-50%, -50%)',
+            width: 4, height: 18,
+            background: '#ffffff',
+            borderRadius: 2,
+            zIndex: 2,
+            boxShadow: '0 0 6px rgba(255,255,255,0.9)',
+          }} />
         </div>
-      </Tooltip>
+      </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, color: 'var(--rr-muted)', marginBottom: 12 }}>
         <span style={{ color: '#3b82f6' }}>La Niña forte</span>
         <span>Neutro</span>
