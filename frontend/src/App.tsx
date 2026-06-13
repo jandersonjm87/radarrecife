@@ -1,15 +1,15 @@
 // ============================================================
 //  src/App.tsx
 //  Componente principal do Radar Recife.
-//  Layout: 2 colunas (mapa+ranking | clima+IRA+fenomenos)
-//  Maritimo integrado no card principal.
+//  Layout: 2 colunas uniformes
+//  Col esquerda: Mapa + Ranking + El Niño + Notícias
+//  Col direita:  Card clima (marítimo compacto) + IRA + Rodovias
 // ============================================================
 
 import { useState, useEffect } from 'react'
 import {
-  Cloud, Droplets, Thermometer, AlertTriangle,
-  CloudRain, Sun, CloudLightning, MapPin, Wind,
-  Eye, Gauge, Leaf, Waves,
+  Cloud, Droplets, CloudRain, Sun, CloudLightning,
+  MapPin, Wind, Eye, Gauge, Leaf, Waves,
 } from 'lucide-react'
 import { Header }               from './components/Header'
 import { AlertaBanner }         from './components/AlertaBanner'
@@ -20,9 +20,9 @@ import { Rodovias }             from './components/Rodovias'
 import { Tooltip }              from './components/Tooltip'
 import { ElNino }               from './components/ElNino'
 import { NoticiasInteligentes } from './components/NoticiasInteligentes'
-import { climaApi, bairrosApi, marineApi } from './services/api'
-import { useWindowSize }        from './hooks/useWindowSize'
-import api                      from './services/api'
+import { bairrosApi, marineApi } from './services/api'
+import { useWindowSize }         from './hooks/useWindowSize'
+import api                       from './services/api'
 
 // ---------------------------------------------------------------------------
 // Constantes
@@ -38,16 +38,16 @@ const NIVEL_COR: Record<string, string> = {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers de clima
+// Helpers
 // ---------------------------------------------------------------------------
 function analisarCondicao(codigo?: number, volume?: number, uv?: number) {
   const vol   = volume || 0
-  const uvVal = uv    || 0
+  const uvVal = uv     || 0
   const cod   = codigo || 0
-  if (cod >= 95)              return { icone: <CloudLightning size={28} color="#f97316" />, label: 'Tempestade',     intensidade: 'Risco de raios',    cor: '#f97316', escala: 4 }
-  if (cod >= 80 || vol > 10)  return { icone: <CloudRain      size={28} color="#ef4444" />, label: 'Chuva forte',    intensidade: `${vol}mm/h`,        cor: '#ef4444', escala: 4 }
-  if (cod >= 61 || vol > 2)   return { icone: <CloudRain      size={28} color="#f97316" />, label: 'Chuva moderada', intensidade: `${vol}mm/h`,        cor: '#f97316', escala: 3 }
-  if (cod >= 51 || vol > 0.1) return { icone: <CloudRain      size={28} color="#60a5fa" />, label: 'Garoa',          intensidade: `${vol}mm/h`,        cor: '#60a5fa', escala: 1 }
+  if (cod >= 95)              return { icone: <CloudLightning size={28} color="#f97316" />, label: 'Tempestade',     intensidade: 'Risco de raios',     cor: '#f97316', escala: 4 }
+  if (cod >= 80 || vol > 10)  return { icone: <CloudRain      size={28} color="#ef4444" />, label: 'Chuva forte',    intensidade: `${vol}mm/h`,         cor: '#ef4444', escala: 4 }
+  if (cod >= 61 || vol > 2)   return { icone: <CloudRain      size={28} color="#f97316" />, label: 'Chuva moderada', intensidade: `${vol}mm/h`,         cor: '#f97316', escala: 3 }
+  if (cod >= 51 || vol > 0.1) return { icone: <CloudRain      size={28} color="#60a5fa" />, label: 'Garoa',          intensidade: `${vol}mm/h`,         cor: '#60a5fa', escala: 1 }
   if (cod >= 2)               return { icone: <Cloud          size={28} color="#94a3b8" />, label: 'Nublado',        intensidade: 'Sem chuva prevista', cor: '#94a3b8', escala: 0 }
   const uvLabel = uvVal <= 2 ? 'Baixo' : uvVal <= 5 ? 'Moderado' : uvVal <= 7 ? 'Alto' : uvVal <= 10 ? 'Muito alto' : 'Extremo'
   const uvCor   = uvVal <= 2 ? '#22c55e' : uvVal <= 5 ? '#eab308' : uvVal <= 7 ? '#f97316' : '#ef4444'
@@ -181,9 +181,35 @@ function App() {
   const hora     = clima?.atualizado_em?.split(' ')[1]?.substring(0, 5) || '--:--'
   const corNivel = NIVEL_COR[clima?.nivel] || '#22c55e'
   const condicao = analisarCondicao(clima?.codigo_tempo, clima?.volume_chuva, clima?.indice_uv)
-  const corOnda  = maritimo?.classificacao_cor ?? '#22c55e'
 
-  // ── Card principal (localidade + clima + maritimo + astronomia + previsao) ─
+  // ── Bloco marítimo compacto — só maré ─────────────────────────────────────
+  const blocoMaritimo = maritimo && (
+    <Tooltip texto={maritimo.mare_descricao}>
+      <div style={{
+        borderTop: '0.5px solid var(--rr-border)',
+        paddingTop: 12,
+        marginTop: 4,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        cursor: 'help',
+      }}>
+        <Waves size={13} color="var(--rr-blue-l)" style={{ flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: maritimo.mare_cor }}>
+            {maritimo.mare_alerta ? '⚠️ ' : '🌊 '}
+            {maritimo.mare_tipo}
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--rr-muted)', marginLeft: 8 }}>
+            · {maritimo.impacto_costeiro}
+          </span>
+        </div>
+        <span style={{ fontSize: 9, color: 'var(--rr-muted)', flexShrink: 0 }}>ⓘ</span>
+      </div>
+    </Tooltip>
+  )
+
+  // ── Card principal clima ───────────────────────────────────────────────────
   const cardPrincipal = (
     <div style={{ background: 'var(--rr-card)', border: '0.5px solid var(--rr-border)', borderRadius: 10, padding: '16px 18px' }}>
 
@@ -271,75 +297,6 @@ function App() {
         ))}
       </div>
 
-      {/* Condições Marítimas — integradas, aparecem só quando dados disponíveis */}
-      {maritimo && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ borderTop: '0.5px solid var(--rr-border)', paddingTop: 12, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-            <Waves size={13} color="var(--rr-blue-l)" />
-            <Tooltip texto="Condições do mar para o litoral de Recife. Ondas altas combinadas com maré de sizígia aumentam risco em Boa Viagem, Pina e Brasília Teimosa.">
-              <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--rr-sub)', cursor: 'help' }}>
-                Condições Marítimas ⓘ
-              </span>
-            </Tooltip>
-          </div>
-
-          {/* Métricas marítimas — 3 colunas */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 10 }}>
-            <Tooltip texto="Altura significativa das ondas. Acima de 1.5m representa risco para áreas costeiras baixas de Recife.">
-              <div style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: '8px 10px', textAlign: 'center', cursor: 'help', width: '100%' }}>
-                <div style={{ fontSize: 9, color: 'var(--rr-muted)', marginBottom: 4 }}>Ondas ⓘ</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: corOnda }}>{maritimo.altura_ondas}m</div>
-                <div style={{ fontSize: 9, color: corOnda, marginTop: 2 }}>{maritimo.classificacao}</div>
-              </div>
-            </Tooltip>
-
-            <Tooltip texto="Direção de onde as ondas estão vindo. Ondas de ESE/SE têm maior impacto na orla de Boa Viagem e Piedade.">
-              <div style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: '8px 10px', textAlign: 'center', cursor: 'help', width: '100%' }}>
-                <div style={{ fontSize: 9, color: 'var(--rr-muted)', marginBottom: 4 }}>Direção ⓘ</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--rr-text)' }}>{maritimo.direcao}</div>
-                <div style={{ fontSize: 9, color: 'var(--rr-muted)', marginTop: 2 }}>{maritimo.direcao_graus}°</div>
-              </div>
-            </Tooltip>
-
-            <Tooltip texto="Período das ondas em segundos. Acima de 10s indica swell de longa distância, mais energético e perigoso.">
-              <div style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: '8px 10px', textAlign: 'center', cursor: 'help', width: '100%' }}>
-                <div style={{ fontSize: 9, color: 'var(--rr-muted)', marginBottom: 4 }}>Período ⓘ</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--rr-text)' }}>{maritimo.periodo}s</div>
-                <div style={{ fontSize: 9, color: 'var(--rr-muted)', marginTop: 2 }}>Swell {maritimo.swell_altura}m</div>
-              </div>
-            </Tooltip>
-          </div>
-
-          {/* Maré lunar */}
-          <Tooltip texto={maritimo.mare_descricao}>
-            <div style={{
-              background: 'var(--rr-surface)',
-              border: `0.5px solid ${maritimo.mare_cor}44`,
-              borderRadius: 6, padding: '10px 12px',
-              cursor: 'help', display: 'flex', alignItems: 'center', gap: 10,
-            }}>
-              <div style={{ fontSize: 18 }}>{maritimo.mare_alerta ? '⚠️' : '🌊'}</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: maritimo.mare_cor }}>{maritimo.mare_tipo}</div>
-                <div style={{ fontSize: 10, color: 'var(--rr-muted)', marginTop: 2 }}>{maritimo.mare_descricao}</div>
-              </div>
-            </div>
-          </Tooltip>
-
-          {/* Alerta de impacto costeiro — só aparece quando necessário */}
-          {maritimo.classificacao_cor !== '#22c55e' && (
-            <div style={{
-              background: `${maritimo.risco_costeiro_cor}15`,
-              border: `0.5px solid ${maritimo.risco_costeiro_cor}44`,
-              borderRadius: 6, padding: '8px 12px', marginTop: 8,
-              fontSize: 11, color: maritimo.risco_costeiro_cor,
-            }}>
-              📍 {maritimo.impacto_costeiro}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Dados astronômicos — 4 colunas */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
         {[
@@ -382,27 +339,30 @@ function App() {
           </div>
         )}
       </div>
+
+      {/* Maré — linha compacta no rodapé do card */}
+      {blocoMaritimo}
     </div>
   )
 
-  // ── Coluna esquerda: Mapa + Ranking ────────────────────────────────────────
+  // ── Coluna esquerda: Mapa + Ranking + El Niño + Notícias ──────────────────
   const colunaEsquerda = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <MapaRecife bairros={bairros} onBairroClick={setBairroSelecionado} atualizadoEm={hora} />
       <div style={{ height: 340 }}>
         <BairrosLista onBairroClick={setBairroSelecionado} />
       </div>
+      <ElNino />
+      <NoticiasInteligentes />
     </div>
   )
 
-  // ── Coluna direita: card clima + IRA + fenômenos + notícias ───────────────
+  // ── Coluna direita: Card clima + IRA + Rodovias ───────────────────────────
   const colunaDireita = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {cardPrincipal}
       <IRA valor={clima?.ira ?? 0} atualizadoEm={hora} />
       <Rodovias />
-      <ElNino />
-      <NoticiasInteligentes />
     </div>
   )
 
@@ -498,8 +458,8 @@ function App() {
           </div>
 
         ) : (
-          // Desktop — 2 colunas: mapa menor | conteúdo principal mais largo
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.7fr', gap: 14, alignItems: 'start' }}>
+          // Desktop — 2 colunas: contexto | clima
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 14, alignItems: 'start' }}>
             {colunaEsquerda}
             {colunaDireita}
           </div>
