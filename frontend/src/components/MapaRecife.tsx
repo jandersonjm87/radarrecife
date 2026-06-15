@@ -1,7 +1,7 @@
 // ============================================================
 //  src/components/MapaRecife.tsx
 //  Mapa interativo de Recife com bairros coloridos por risco.
-//  Usa Leaflet + OpenStreetMap — gratuito e sem chave de API.
+//  Usa Leaflet + CartoDB dark tiles — gratuito e sem chave de API.
 // ============================================================
 
 import { useEffect, useRef } from 'react'
@@ -21,6 +21,7 @@ interface MapaRecifeProps {
   bairros: BairroMapa[]
   onBairroClick?: (bairro: BairroMapa) => void
   atualizadoEm?: string
+  altura?: number  // altura do container do mapa em px (padrão 280)
 }
 
 const NIVEL_COR: Record<string, string> = {
@@ -37,7 +38,7 @@ const NIVEL_LABEL: Record<string, string> = {
   vermelho: 'Critico',
 }
 
-export function MapaRecife({ bairros, onBairroClick, atualizadoEm }: MapaRecifeProps) {
+export function MapaRecife({ bairros, onBairroClick, atualizadoEm, altura = 280 }: MapaRecifeProps) {
   const mapaRef = useRef<L.Map | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -59,26 +60,22 @@ export function MapaRecife({ bairros, onBairroClick, atualizadoEm }: MapaRecifeP
     }).addTo(mapa)
 
     mapaRef.current = mapa
-
-    return () => {
-      mapa.remove()
-      mapaRef.current = null
-    }
   }, [])
 
   useEffect(() => {
-    if (!mapaRef.current || bairros.length === 0) return
+    if (!mapaRef.current) return
 
     // Remove marcadores anteriores
     mapaRef.current.eachLayer((layer) => {
       if (layer instanceof L.CircleMarker) {
-        layer.remove()
+        mapaRef.current!.removeLayer(layer)
       }
     })
 
-    // Adiciona marcador para cada bairro
+    // Adiciona marcadores dos bairros
     bairros.forEach((bairro) => {
-      const cor = NIVEL_COR[bairro.nivel] || NIVEL_COR.verde
+      if (!mapaRef.current) return
+      const cor   = NIVEL_COR[bairro.nivel]  || '#22c55e'
       const label = NIVEL_LABEL[bairro.nivel] || 'Normal'
 
       const marcador = L.circleMarker(
@@ -144,12 +141,17 @@ export function MapaRecife({ bairros, onBairroClick, atualizadoEm }: MapaRecifeP
       border: '0.5px solid var(--rr-border)',
       borderRadius: 8,
       padding: 14,
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',   // ocupa toda a altura disponível no pai
+      boxSizing: 'border-box',
     }}>
       <div style={{
         fontSize: 11, color: 'var(--rr-sub)',
         marginBottom: 10,
         display: 'flex', justifyContent: 'space-between',
         alignItems: 'center',
+        flexShrink: 0,
       }}>
         <span>Mapa de risco — bairros de Recife</span>
         <span style={{ fontSize: 10, color: 'var(--rr-muted)' }}>
@@ -160,6 +162,7 @@ export function MapaRecife({ bairros, onBairroClick, atualizadoEm }: MapaRecifeP
       {/* Legenda */}
       <div style={{
         display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap',
+        flexShrink: 0,
       }}>
         {Object.entries(NIVEL_COR).map(([nivel, cor]) => (
           <div key={nivel} style={{
@@ -175,11 +178,12 @@ export function MapaRecife({ bairros, onBairroClick, atualizadoEm }: MapaRecifeP
         ))}
       </div>
 
-      {/* Container do mapa */}
+      {/* Container do mapa — flex:1 para crescer e preencher o card */}
       <div
         ref={containerRef}
         style={{
-          height: 280,
+          flex: 1,
+          minHeight: altura,
           borderRadius: 6,
           overflow: 'hidden',
           border: '0.5px solid var(--rr-border)',
