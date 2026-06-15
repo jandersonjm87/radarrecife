@@ -181,9 +181,24 @@ function App() {
   const corNivel = NIVEL_COR[clima?.nivel] || '#22c55e'
   const condicao = analisarCondicao(clima?.codigo_tempo, clima?.volume_chuva, clima?.indice_uv)
 
-  // ── Bloco marítimo compacto — só maré ─────────────────────────────────────
+  // ── Bloco marítimo compacto — maré com nível alto/baixo/normal ─────────────
+  // Sizígia (Lua Cheia/Nova) = maré ALTA | Quadratura (Quarto) = maré BAIXA
+  const nivelMare = (() => {
+    if (!maritimo) return { texto: '', cor: 'var(--rr-muted)' }
+    const tipo = (maritimo.mare_tipo || '').toLowerCase()
+    if (tipo.includes('sizígia') || tipo.includes('sizigia'))
+      return { texto: 'Maré Alta', cor: '#f97316' }
+    if (tipo.includes('quadratura'))
+      return { texto: 'Maré Baixa', cor: '#22c55e' }
+    return { texto: 'Maré Normal', cor: 'var(--rr-muted)' }
+  })()
+
+  const tooltipMare = maritimo
+    ? `${nivelMare.texto} — ${maritimo.mare_tipo}. ${maritimo.mare_descricao}`
+    : ''
+
   const blocoMaritimo = maritimo && (
-    <Tooltip texto={maritimo.mare_descricao}>
+    <Tooltip texto={tooltipMare}>
       <div style={{
         borderTop: '0.5px solid var(--rr-border)',
         paddingTop: 12,
@@ -194,13 +209,19 @@ function App() {
         cursor: 'help',
       }}>
         <Waves size={13} color="var(--rr-blue-l)" style={{ flexShrink: 0 }} />
-        <div style={{ flex: 1 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: maritimo.mare_cor }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {/* Nível de maré — linguagem familiar ao recifense */}
+          <span style={{ fontSize: 11, fontWeight: 700, color: nivelMare.cor }}>
             {maritimo.mare_alerta ? '⚠️ ' : '🌊 '}
+            {nivelMare.texto}
+          </span>
+          <span style={{ fontSize: 10, color: 'var(--rr-muted)' }}>·</span>
+          <span style={{ fontSize: 11, color: maritimo.mare_cor, fontWeight: 500 }}>
             {maritimo.mare_tipo}
           </span>
-          <span style={{ fontSize: 11, color: 'var(--rr-muted)', marginLeft: 8 }}>
-            · {maritimo.impacto_costeiro}
+          <span style={{ fontSize: 10, color: 'var(--rr-muted)' }}>·</span>
+          <span style={{ fontSize: 10, color: 'var(--rr-muted)' }}>
+            {maritimo.impacto_costeiro}
           </span>
         </div>
         <span style={{ fontSize: 9, color: 'var(--rr-muted)', flexShrink: 0 }}>ⓘ</span>
@@ -279,20 +300,33 @@ function App() {
         ))}
       </div>
 
-      {/* Acumulados de chuva — 3 colunas */}
+      {/* Acumulados de chuva — 3 colunas com tooltip explicativo */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
         {[
-          { label: 'Acumulado 24h', valor: clima?.acumulado_24h },
-          { label: 'Acumulado 48h', valor: clima?.acumulado_48h },
-          { label: 'Acumulado 72h', valor: clima?.acumulado_72h },
-        ].map(({ label, valor }) => (
-          <div key={label} style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: '8px 10px', textAlign: 'center' }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--rr-text)' }}>
-              {loading ? '...' : `${valor ?? '--'}`}
-              <span style={{ fontSize: 10, color: 'var(--rr-muted)', marginLeft: 2 }}>mm</span>
+          {
+            label: '24h', valor: clima?.acumulado_24h,
+            tooltip: 'Total de chuva acumulada nas últimas 24 horas. Acima de 50mm em 24h é critério para alerta vermelho de alagamento no Radar Recife.',
+          },
+          {
+            label: '48h', valor: clima?.acumulado_48h,
+            tooltip: 'Total de chuva acumulada nos últimos 2 dias. Ajuda a avaliar se o solo já está saturado — chuvas consecutivas aumentam muito o risco de alagamento.',
+          },
+          {
+            label: '72h', valor: clima?.acumulado_72h,
+            tooltip: 'Total de chuva acumulada nos últimos 3 dias. Volume elevado indica solo encharcado e rios próximos da capacidade máxima.',
+          },
+        ].map(({ label, valor, tooltip }) => (
+          <Tooltip key={label} texto={tooltip} posicao="top">
+            <div style={{ background: 'var(--rr-surface)', borderRadius: 6, padding: '8px 10px', textAlign: 'center', cursor: 'help', width: '100%' }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--rr-text)' }}>
+                {loading ? '...' : `${valor ?? '--'}`}
+                <span style={{ fontSize: 10, color: 'var(--rr-muted)', marginLeft: 2 }}>mm</span>
+              </div>
+              <div style={{ fontSize: 9, color: 'var(--rr-muted)', marginTop: 2 }}>
+                Acumulado {label} ⓘ
+              </div>
             </div>
-            <div style={{ fontSize: 9, color: 'var(--rr-muted)', marginTop: 2 }}>{label}</div>
-          </div>
+          </Tooltip>
         ))}
       </div>
 
