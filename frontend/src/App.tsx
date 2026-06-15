@@ -346,27 +346,31 @@ function App() {
   )
 
   // ── Coluna esquerda: Mapa + Ranking + El Niño + Notícias ──────────────────
+  // ── Col esquerda: Mapa + Ranking com scroll fixo ─────────────────────────
   const colunaEsquerda = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <MapaRecife bairros={bairros} onBairroClick={setBairroSelecionado} atualizadoEm={hora} />
-      {/* minHeight garante espaço mínimo mas deixa crescer conforme conteúdo */}
-      <div style={{ minHeight: 280, flex: 1 }}>
+      {/* Ranking com altura fixa e scroll interno — evita coluna infinita */}
+      <div style={{ height: 420, overflow: 'hidden' }}>
         <BairrosLista onBairroClick={setBairroSelecionado} />
       </div>
-      <ElNino />
-      <NoticiasInteligentes />
     </div>
   )
 
-  // ── Coluna direita: Card clima + IRA + Rodovias ───────────────────────────
+  // ── Col direita: Card clima + IRA + Rodovias ──────────────────────────────
   const colunaDireita = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {cardPrincipal}
-      {/* flex:1 faz o IRA crescer para preencher o espaco restante da coluna */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <IRA valor={clima?.ira ?? 0} atualizadoEm={hora} />
-      </div>
+      <IRA valor={clima?.ira ?? 0} atualizadoEm={hora} />
       <Rodovias />
+    </div>
+  )
+
+  // ── Linha inferior full-width: El Niño + Notícias lado a lado ─────────────
+  const linhaInferior = (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 0 }}>
+      <ElNino />
+      <NoticiasInteligentes />
     </div>
   )
 
@@ -456,16 +460,22 @@ function App() {
 
         ) : isTablet ? (
           // Tablet — 2 colunas iguais
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'start' }}>
-            {colunaEsquerda}
-            {colunaDireita}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'start' }}>
+              {colunaEsquerda}
+              {colunaDireita}
+            </div>
+            {linhaInferior}
           </div>
 
         ) : (
           // Desktop — 2 colunas: contexto | clima
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 14, alignItems: 'stretch' }}>
-            {colunaEsquerda}
-            {colunaDireita}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 14, alignItems: 'start' }}>
+              {colunaEsquerda}
+              {colunaDireita}
+            </div>
+            {linhaInferior}
           </div>
         )}
 
@@ -475,4 +485,5 @@ function App() {
 }
 
 export default App
+
 
