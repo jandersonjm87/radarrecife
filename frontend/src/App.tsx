@@ -346,12 +346,10 @@ function App() {
 
   // ── Coluna esquerda: Mapa + Ranking + El Niño + Notícias ──────────────────
   // ── Col esquerda: Mapa ocupa toda a altura da coluna ─────────────────────
+  // height:100% + alignItems:stretch no grid fazem o mapa igualar a col direita
   const colunaEsquerda = (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Mapa cresce para preencher toda a coluna — bairros visíveis e clicáveis */}
-      <div style={{ flex: 1, minHeight: 400 }}>
-        <MapaRecife bairros={bairros} onBairroClick={setBairroSelecionado} atualizadoEm={hora} />
-      </div>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <MapaRecife bairros={bairros} onBairroClick={setBairroSelecionado} atualizadoEm={hora} />
     </div>
   )
 
