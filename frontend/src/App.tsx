@@ -349,7 +349,8 @@ function App() {
   const colunaEsquerda = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <MapaRecife bairros={bairros} onBairroClick={setBairroSelecionado} atualizadoEm={hora} />
-      <div style={{ height: 340 }}>
+      {/* minHeight garante espaço mínimo mas deixa crescer conforme conteúdo */}
+      <div style={{ minHeight: 280, flex: 1 }}>
         <BairrosLista onBairroClick={setBairroSelecionado} />
       </div>
       <ElNino />
@@ -361,7 +362,10 @@ function App() {
   const colunaDireita = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {cardPrincipal}
-      <IRA valor={clima?.ira ?? 0} atualizadoEm={hora} />
+      {/* flex:1 faz o IRA crescer para preencher o espaco restante da coluna */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <IRA valor={clima?.ira ?? 0} atualizadoEm={hora} />
+      </div>
       <Rodovias />
     </div>
   )
@@ -459,7 +463,7 @@ function App() {
 
         ) : (
           // Desktop — 2 colunas: contexto | clima
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 14, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 14, alignItems: 'stretch' }}>
             {colunaEsquerda}
             {colunaDireita}
           </div>
@@ -471,3 +475,4 @@ function App() {
 }
 
 export default App
+
