@@ -14,7 +14,6 @@ import {
 import { Header }               from './components/Header'
 import { AlertaBanner }         from './components/AlertaBanner'
 import { IRA }                  from './components/IRA'
-import { BairrosLista }         from './components/BairrosLista'
 import { MapaRecife }           from './components/MapaRecife'
 import { Rodovias }             from './components/Rodovias'
 import { Tooltip }              from './components/Tooltip'
@@ -346,14 +345,12 @@ function App() {
   )
 
   // ── Coluna esquerda: Mapa + Ranking + El Niño + Notícias ──────────────────
-  // ── Col esquerda: Mapa + Ranking com scroll fixo ─────────────────────────
-  // height: 100% + display flex stretch faz as colunas ficarem iguais no grid
+  // ── Col esquerda: Mapa ocupa toda a altura da coluna ─────────────────────
   const colunaEsquerda = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
-      <MapaRecife bairros={bairros} onBairroClick={setBairroSelecionado} atualizadoEm={hora} />
-      {/* flex:1 faz o ranking crescer e preencher todo o espaço restante da coluna */}
-      <div style={{ flex: 1, overflow: 'hidden', minHeight: 200 }}>
-        <BairrosLista onBairroClick={setBairroSelecionado} />
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Mapa cresce para preencher toda a coluna — bairros visíveis e clicáveis */}
+      <div style={{ flex: 1, minHeight: 400 }}>
+        <MapaRecife bairros={bairros} onBairroClick={setBairroSelecionado} atualizadoEm={hora} />
       </div>
     </div>
   )
@@ -454,9 +451,6 @@ function App() {
             <MapaRecife bairros={bairros} onBairroClick={setBairroSelecionado} atualizadoEm={hora} />
             <IRA valor={clima?.ira ?? 0} atualizadoEm={hora} />
             {cardPrincipal}
-            <div style={{ height: 280 }}>
-              <BairrosLista onBairroClick={setBairroSelecionado} />
-            </div>
             <Rodovias />
             <ElNino />
             <NoticiasInteligentes />
