@@ -347,28 +347,32 @@ function App() {
 
   // ── Coluna esquerda: Mapa + Ranking + El Niño + Notícias ──────────────────
   // ── Col esquerda: Mapa + Ranking com scroll fixo ─────────────────────────
+  // height: 100% + display flex stretch faz as colunas ficarem iguais no grid
   const colunaEsquerda = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
       <MapaRecife bairros={bairros} onBairroClick={setBairroSelecionado} atualizadoEm={hora} />
-      {/* Ranking com altura fixa e scroll interno — evita coluna infinita */}
-      <div style={{ height: 420, overflow: 'hidden' }}>
+      {/* flex:1 faz o ranking crescer e preencher todo o espaço restante da coluna */}
+      <div style={{ flex: 1, overflow: 'hidden', minHeight: 200 }}>
         <BairrosLista onBairroClick={setBairroSelecionado} />
       </div>
     </div>
   )
 
-  // ── Col direita: Card clima + IRA + Rodovias ──────────────────────────────
+  // ── Col direita: Card clima + IRA cresce + Rodovias ───────────────────────
   const colunaDireita = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
       {cardPrincipal}
-      <IRA valor={clima?.ira ?? 0} atualizadoEm={hora} />
+      {/* flex:1 faz o IRA crescer e preencher o espaço restante até igualar col esquerda */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 160 }}>
+        <IRA valor={clima?.ira ?? 0} atualizadoEm={hora} />
+      </div>
       <Rodovias />
     </div>
   )
 
   // ── Linha inferior full-width: El Niño + Notícias lado a lado ─────────────
   const linhaInferior = (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 0 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
       <ElNino />
       <NoticiasInteligentes />
     </div>
@@ -461,7 +465,7 @@ function App() {
         ) : isTablet ? (
           // Tablet — 2 colunas iguais
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'stretch' }}>
               {colunaEsquerda}
               {colunaDireita}
             </div>
@@ -471,7 +475,7 @@ function App() {
         ) : (
           // Desktop — 2 colunas: contexto | clima
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 14, alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 14, alignItems: 'stretch' }}>
               {colunaEsquerda}
               {colunaDireita}
             </div>
@@ -485,5 +489,6 @@ function App() {
 }
 
 export default App
+
 
 
