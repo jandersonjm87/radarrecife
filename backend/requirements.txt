@@ -1,30 +1,9 @@
-# ============================================================
-#  backend/requirements.txt
-#  Dependencias do Radar Recife
-# ============================================================
-
-# Framework
-fastapi==0.111.0
-uvicorn==0.29.0
-
-# Banco de dados
-sqlalchemy==2.0.30
-alembic==1.13.1
-psycopg2-binary==2.9.9
-
-# Cache
-redis==5.0.4
-
-# HTTP
-httpx==0.27.0
-
-# Validacao
-pydantic==2.7.1
-pydantic-settings==2.2.1
-
-# Agendamento de tarefas
-apscheduler==3.10.4
-
-# Utilitarios
-python-dotenv==1.0.1
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+httpx==0.27.2
 feedparser==6.0.11
+pydantic==2.9.2
+pydantic-settings==2.5.2
+python-dotenv==1.0.1
+cachetools==5.5.0
+slowapi==0.1.9
