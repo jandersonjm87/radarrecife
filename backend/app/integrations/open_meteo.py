@@ -3,15 +3,26 @@
 #
 #  Responsabilidade: buscar dados meteorologicos via Open-Meteo.
 #  API gratuita, sem necessidade de chave, alta precisao.
+#  Cache TTL implementado para evitar chamadas repetidas.
 # ============================================================
 
 import httpx
 import math
+import logging
 from datetime import datetime, timezone, timedelta
+from cachetools import TTLCache
 from app.core.config import get_settings
 
-settings = get_settings()
+settings  = get_settings()
+logger    = logging.getLogger("radar_recife.open_meteo")
 TZ_RECIFE = timezone(timedelta(hours=-3))
+
+# Cache em memoria — evita chamar Open-Meteo a cada request do frontend
+# TTL de 5 minutos: dados frescos sem sobrecarregar a API externa
+_cache_clima  = TTLCache(maxsize=50, ttl=settings.CACHE_CLIMA_TTL)
+_cache_prev   = TTLCache(maxsize=10, ttl=settings.CACHE_CLIMA_TTL)
+
+
 
 
 def _calcular_fase_lua() -> tuple[str, str, float]:
@@ -83,12 +94,18 @@ def _calcular_acumulados(horario: dict) -> tuple[float, float, float]:
 
 async def buscar_clima_atual(latitude: float, longitude: float) -> dict:
     """
-    Busca condicoes climaticas completas:
+    Busca condicoes climaticas completas.
+    Usa cache TTL de 5 minutos — evita multiplas chamadas para a mesma coordenada.
     - Tempo atual (temperatura, vento, chuva, UV, pressao)
     - Acumulados 24h/48h/72h
     - Dados astronomicos (nascer/por do sol, fase da lua calculada localmente)
     - Qualidade do ar via Open-Meteo Air Quality API
     """
+    chave = f"{round(latitude,3)},{round(longitude,3)}"
+    if chave in _cache_clima:
+        logger.debug("Cache hit clima: %s", chave)
+        return _cache_clima[chave]
+
     params_clima = {
         "latitude": latitude,
         "longitude": longitude,
@@ -145,7 +162,7 @@ async def buscar_clima_atual(latitude: float, longitude: float) -> dict:
 
     aqi = dados_ar.get("european_aqi")
 
-    return {
+    resultado = {
         "temperatura":       atual.get("temperature_2m"),
         "sensacao_termica":  atual.get("apparent_temperature"),
         "umidade":           atual.get("relative_humidity_2m"),
@@ -177,6 +194,9 @@ async def buscar_clima_atual(latitude: float, longitude: float) -> dict:
         "coletado_em":       datetime.now().isoformat(),
         "fonte":             "open-meteo",
     }
+    _cache_clima[chave] = resultado
+    logger.info("Open-Meteo clima: %s | %s°C | IRA calculado", chave, resultado.get("temperatura"))
+    return resultado
 
 
 async def buscar_previsao_horaria(latitude: float, longitude: float) -> list[dict]:
