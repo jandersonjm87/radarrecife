@@ -148,3 +148,6 @@ PONTOS_CRITICOS = [
         "ativo":     False,
     },
 ]
+
+# Alias de compatibilidade com bairros.py
+PONTOS_CRITICOS_BR232 = PONTOS_CRITICOS
