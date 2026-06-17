@@ -10,6 +10,13 @@
 
 import feedparser
 import httpx
+import logging
+from cachetools import TTLCache
+from app.core.config import get_settings
+
+settings       = get_settings()
+logger         = logging.getLogger('radar_recife.noticias')
+_cache_noticias = TTLCache(maxsize=5, ttl=settings.CACHE_NOTICIAS_TTL)
 import re
 from datetime import datetime, timezone, timedelta
 
@@ -256,5 +263,3 @@ async def buscar_noticias_inteligentes() -> list[dict]:
 
 
 # Mantém compatibilidade com código anterior
-async def buscar_noticias_clima() -> list[dict]:
-    return await buscar_noticias_inteligentes()
