@@ -11,6 +11,7 @@ import {
   Cloud, Droplets, CloudRain, Sun, CloudLightning,
   MapPin, Wind, Eye, Gauge, Leaf, Waves,
 } from 'lucide-react'
+// Nota: Thermometer e AlertTriangle removidos — nao utilizados
 import { Header }               from './components/Header'
 import { AlertaBanner }         from './components/AlertaBanner'
 import { IRA }                  from './components/IRA'
