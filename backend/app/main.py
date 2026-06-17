@@ -4,8 +4,11 @@
 # ============================================================
 
 import logging
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from app.core.config import get_settings
 from app.api.routes import clima, bairros, noticias, el_nino, marine
@@ -19,19 +22,26 @@ logging.basicConfig(
 )
 logger = logging.getLogger("radar_recife")
 
+# Rate limiter — protege contra abuso e ban da Open-Meteo
+# 60 requests/minuto por IP e endpoint
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+
 app = FastAPI(
     title="Radar Recife",
     description="Monitoramento de chuvas e alertas em tempo real para Recife e Pernambuco.",
     version=settings.APP_VERSION,
 )
 
+# Rate limiting middleware
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # CORS seguro — origens permitidas vem do .env
-# Em desenvolvimento: ALLOWED_ORIGINS=* | Em producao: dominio exato do Railway
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET"],          # API somente leitura
+    allow_methods=["GET"],
     allow_headers=["Content-Type"],
 )
 
