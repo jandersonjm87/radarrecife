@@ -7,6 +7,14 @@
 # ============================================================
 
 import httpx
+import logging
+from cachetools import TTLCache
+from app.core.config import get_settings
+
+settings = get_settings()
+logger   = logging.getLogger('radar_recife.elnino')
+_cache_elnino = TTLCache(maxsize=2, ttl=settings.CACHE_ELNINO_TTL)
+
 from datetime import datetime, timezone, timedelta
 
 NOAA_ONI_URL = "https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt"
