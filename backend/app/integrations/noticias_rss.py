@@ -84,6 +84,39 @@ RODOVIAS = [
     {"pattern": r"pe[- ]?60",  "nome": "PE-60"},
 ]
 
+# ── Filtro geográfico obrigatório — APENAS PE/Recife ─────
+# Notícia só é aceita se mencionar ao menos um desses termos.
+# Isso elimina notícias de outros estados (Rio, SP, etc).
+TERMOS_GEOGRAFICOS_PE = [
+    # Cidades e regiões
+    "recife", "pernambuco", "jaboatao", "olinda", "caruaru",
+    "paulista", "camaragibe", "cabo de santo agostinho",
+    "moreno", "vitoria de santo antao", "gravata",
+    "abreu e lima", "igarassu", "ipojuca", "sirinhaem",
+    "palmares", "caetes", "petrolina", "garanhuns",
+    "surubim", "limoeiro", "belo jardim",
+    # Sigla e referências
+    "pe ", " pe,", "(pe)", "- pe", "/pe",
+    "grande recife", "regiao metropolitana do recife",
+    "rmr", "litoral pernambucano", "agreste pernambucano",
+    "sertao pernambucano", "zona da mata",
+    # Rios e referências locais
+    "rio capibaribe", "rio beberibe", "rio jaboatao",
+    "apac", "cemaden pe", "defesa civil do recife",
+    "prefeitura do recife", "governo de pernambuco",
+    # Rodovias locais
+    "br-232", "br-101 pe", "pe-60", "pe-15",
+]
+
+def _e_de_pernambuco(titulo: str, descricao: str) -> bool:
+    """
+    Filtro geográfico obrigatório.
+    Retorna True APENAS se a notícia mencionar Pernambuco ou Recife.
+    Elimina notícias de outros estados como Rio, SP, MG, etc.
+    """
+    texto = f"{titulo} {descricao or ''}".lower()
+    return any(termo in texto for termo in TERMOS_GEOGRAFICOS_PE)
+
 
 def _classificar_gravidade(titulo: str, descricao: str) -> dict:
     """
@@ -212,6 +245,11 @@ async def buscar_noticias_inteligentes() -> list[dict]:
 
                 # Filtra apenas noticias recentes (48h)
                 if not _e_recente(data_raw, horas=24):
+                    continue
+
+                # FILTRO GEOGRAFICO: aceita apenas noticias de PE/Recife
+                # Elimina noticias de outros estados (Rio, SP, MG, etc)
+                if not _e_de_pernambuco(titulo, descricao):
                     continue
 
                 # Analisa gravidade
