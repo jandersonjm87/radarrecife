@@ -66,7 +66,7 @@ def _impactos_recife(fenomeno: str, intensidade: str, oni: float) -> list[str]:
         elif oni >= 0.5:
             return [
                 "Leve aumento na probabilidade de chuvas acima da media",
-                "Condicoes favoraveis para precipitacao no litoral pernambucano",
+                "Condições favoráveis para precipitação no litoral pernambucano",
                 "Monitoramento de rotina recomendado",
             ]
     elif fenomeno == "la_nina":
@@ -79,12 +79,12 @@ def _impactos_recife(fenomeno: str, intensidade: str, oni: float) -> list[str]:
         else:
             return [
                 "Leve reducao na probabilidade de chuvas acima da media",
-                "Condicoes proximas ao normal para o litoral",
+                "Condições próximas ao normal para o litoral",
             ]
     return [
-        "Condicoes climaticas dentro da normalidade esperada",
-        "Sem influencia significativa de fenomenos climaticos globais",
-        "Monitoramento padrao recomendado",
+        "Condições climáticas dentro da normalidade esperada",
+        "Sem influência significativa de fenômenos climáticos globais",
+        "Monitoramento padrão recomendado",
     ]
 
 
