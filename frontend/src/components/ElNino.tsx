@@ -241,7 +241,10 @@ export function ElNino() {
           {dados.tendencia_hist.map((t, i) => {
             const corBarra = t.oni >= 0.5 ? '#ef4444' : t.oni <= -0.5 ? '#60a5fa' : '#22c55e'
             const labelFase = t.oni >= 0.5 ? 'El Niño' : t.oni <= -0.5 ? 'La Niña' : 'Normal'
-            const alturaBarra = Math.min(Math.abs(t.oni) * 30 + 8, 40)
+            // Altura proporcional ao valor ONI — sem offset fixo
+            // Valor máximo do histórico como referência para escala
+            const oniMax    = Math.max(...dados.tendencia_hist.map(h => Math.abs(h.oni)), 0.1)
+            const alturaBarra = Math.max(Math.round((Math.abs(t.oni) / oniMax) * 44), 4)
             return (
               <Tooltip key={i} texto={`${t.periodo}: ${labelFase} (${t.oni >= 0 ? '+' : ''}${t.oni.toFixed(2)})`}>
                 <div style={{ textAlign: 'center', cursor: 'help', width: '100%' }}>
